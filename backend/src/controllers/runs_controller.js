@@ -167,3 +167,16 @@ export async function deleteRunItem(req, res) {
     res.status(500).json({ error: error.message });
   }
 }
+
+export async function getCustomCommodities(req, res) {
+  try {
+    const items = await GroceryRunItem.findAll({
+      attributes: ['commodity', 'category', 'unit', 'price', 'market'],
+      group: ['commodity', 'category', 'unit', 'price', 'market'],
+      order: [['commodity', 'ASC']]
+    });
+    res.json(items);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}

@@ -6,7 +6,8 @@ import {
   deleteRun, 
   addRunItem, 
   updateRunItem, 
-  deleteRunItem 
+  deleteRunItem,
+  getCustomCommodities 
 } from '../controllers/runs_controller.js';
 import authMiddleware from '../middleware/auth.js';
 
@@ -14,6 +15,9 @@ const router = express.Router();
 
 // Apply auth authMiddleware globally to all runs endpoints
 router.use(authMiddleware);
+
+// Crowdsourced commodities route
+router.get('/custom-commodities', getCustomCommodities);
 
 // Runs Header Routes
 router.get('/', listRuns);
