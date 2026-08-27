@@ -227,7 +227,7 @@ class _LoginViewState extends State<LoginView> {
 
                   PrimaryButton(
                     text: _isSignUp ? "REGISTER ACCOUNT" : "SIGN IN",
-                    onPressed: (_isSignUp && !_termsAccepted) ? null : _submit,
+                    onPressed: (_isSignUp && !_termsAccepted) ? null : () => _submit(),
                     isLoading: _isLoading,
                   ),
                   const SizedBox(height: 16),
