@@ -1,6 +1,7 @@
 import GroceryRun from '../models/GroceryRun.js';
 import GroceryRunItem from '../models/GroceryRunItem.js';
 import User from '../models/User.js';
+import sequelize from '../models/db.js';
 
 // --- Runs Header CRUD ---
 
@@ -184,11 +185,10 @@ export async function deleteRunItem(req, res) {
 
 export async function getCustomCommodities(req, res) {
   try {
-    const items = await GroceryRunItem.findAll({
-      attributes: ['commodity', 'category', 'unit', 'price', 'market'],
-      group: ['commodity', 'category', 'unit', 'price', 'market'],
-      order: [['commodity', 'ASC']]
-    });
+    const items = await sequelize.query(
+      'SELECT DISTINCT commodity, category, unit, price, market FROM grocery_run_items ORDER BY commodity ASC',
+      { type: sequelize.QueryTypes.SELECT }
+    );
     res.json(items);
   } catch (error) {
     res.status(500).json({ error: error.message });
