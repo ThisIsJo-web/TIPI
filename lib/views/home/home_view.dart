@@ -271,12 +271,16 @@ class _HomeViewState extends State<HomeView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    TranslationService.instance.t('recent_runs'),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
+                  Expanded(
+                    child: Text(
+                      TranslationService.instance.t('recent_runs'),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   TextButton.icon(
