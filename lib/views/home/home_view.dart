@@ -62,28 +62,30 @@ class _HomeViewState extends State<HomeView> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  decoration: InputDecoration(labelText: TranslationService.instance.t('run_title')),
-                  validator: (val) => val == null || val.isEmpty ? TranslationService.instance.t('title_required') : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: budgetController,
-                  decoration: InputDecoration(labelText: TranslationService.instance.t('budget_limit')),
-                  keyboardType: TextInputType.number,
-                  validator: (val) {
-                    if (val == null || val.isEmpty) return TranslationService.instance.t('budget_required');
-                    if (double.tryParse(val) == null) return TranslationService.instance.t('valid_number');
-                    return null;
-                  },
-                ),
-              ],
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nameController,
+                    decoration: InputDecoration(labelText: TranslationService.instance.t('run_title')),
+                    validator: (val) => val == null || val.isEmpty ? TranslationService.instance.t('title_required') : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: budgetController,
+                    decoration: InputDecoration(labelText: TranslationService.instance.t('budget_limit')),
+                    keyboardType: TextInputType.number,
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return TranslationService.instance.t('budget_required');
+                      if (double.tryParse(val) == null) return TranslationService.instance.t('valid_number');
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [

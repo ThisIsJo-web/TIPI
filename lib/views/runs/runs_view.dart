@@ -1,5 +1,8 @@
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
 import '../../services/theme_service.dart';
@@ -23,6 +26,7 @@ class _RunsViewState extends State<RunsView> {
   bool _isLoading = false;
   List<PriceItem> _filteredPrices = [];
   String _searchQuery = "";
+  final GlobalKey _receiptKey = GlobalKey();
 
   // The virtual markets for Davao del Norte
   final List<String> _markets = ["Panabo Public Market", "Tagum Public Market"];
@@ -415,40 +419,42 @@ class _RunsViewState extends State<RunsView> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: selectedMarket,
-                    decoration: const InputDecoration(labelText: "Choose Target Market"),
-                    items: _markets.map((m) {
-                      return DropdownMenuItem(value: m, child: Text(m));
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setDialogState(() {
-                          selectedMarket = val;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: priceController,
-                    decoration: InputDecoration(
-                      labelText: "Custom Price per ${priceItem.unit} (PHP)",
-                      suffixText: "Ref: ₱${priceItem.price.toStringAsFixed(2)}",
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: selectedMarket,
+                      decoration: const InputDecoration(labelText: "Choose Target Market"),
+                      items: _markets.map((m) {
+                        return DropdownMenuItem(value: m, child: Text(m));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            selectedMarket = val;
+                          });
+                        }
+                      },
                     ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: qtyController,
-                    decoration: const InputDecoration(labelText: "Quantity Needed"),
-                    keyboardType: TextInputType.number,
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: priceController,
+                      decoration: InputDecoration(
+                        labelText: "Custom Price per ${priceItem.unit} (PHP)",
+                        suffixText: "Ref: ₱${priceItem.price.toStringAsFixed(2)}",
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: qtyController,
+                      decoration: const InputDecoration(labelText: "Quantity Needed"),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -543,7 +549,7 @@ class _RunsViewState extends State<RunsView> {
               ),
               onPressed: () {
                 Navigator.of(ctx).pop();
-                _generateAndCopyEReceipt();
+                _showVisualReceiptDialog();
               },
               child: Text(TranslationService.instance.t('yes')),
             ),
@@ -553,29 +559,270 @@ class _RunsViewState extends State<RunsView> {
     );
   }
 
-  void _generateAndCopyEReceipt() async {
+  void _showVisualReceiptDialog() {
     final savings = _currentRun.budget - _currentRun.spent;
     final displaySavings = savings < 0 ? 0.0 : savings;
+    Uint8List? generatedImageBytes;
+    String? savedFilePath;
 
-    final receiptText = 
-      "🧾 TIPI GROCERY E-RECEIPT 🧾\n"
-      "---------------------------------\n"
-      "Run: ${_currentRun.name}\n"
-      "Date: ${DateTime.now().toString().split(' ').first}\n\n"
-      "ITEMS BOUGHT:\n" +
-      _currentRun.items.map((item) => "• ${item.commodity} (${item.quantity.toStringAsFixed(1)} ${item.unit}) - ₱${(item.price * item.quantity).toStringAsFixed(2)}").join('\n') +
-      "\n---------------------------------\n"
-      "Total Budget: ₱${_currentRun.budget.toStringAsFixed(2)}\n"
-      "Actual Spent: ₱${_currentRun.spent.toStringAsFixed(2)}\n"
-      "---------------------------------\n"
-      "🎉 TOTAL SAVED: ₱${displaySavings.toStringAsFixed(2)} 🎉\n\n"
-      "Thank you for shopping smart with Tipi! 🛒";
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialogState) {
+            final isDark = ThemeService.instance.isDarkMode.value;
+            
+            // Define receipt visual design card
+            Widget receiptCard = Container(
+              width: 300,
+              padding: const EdgeInsets.all(20),
+              color: Colors.white, // Authentic receipt white paper
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Center(
+                    child: Text(
+                      "🧾 TIPI E-RECEIPT",
+                      style: TextStyle(
+                        fontFamily: 'Courier',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const Center(
+                    child: Text(
+                      "Matipid Grocery Shopping",
+                      style: TextStyle(
+                        fontFamily: 'Courier',
+                        fontSize: 11,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                  const Center(
+                    child: Text(
+                      "Davao del Norte, PH",
+                      style: TextStyle(
+                        fontFamily: 'Courier',
+                        fontSize: 10,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "DATE: ${DateTime.now().toString().split(' ').first}",
+                    style: const TextStyle(
+                      fontFamily: 'Courier',
+                      fontSize: 11,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    "RUN: ${_currentRun.name.toUpperCase()}",
+                    style: const TextStyle(
+                      fontFamily: 'Courier',
+                      fontSize: 11,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const Divider(color: Colors.black54, thickness: 1, height: 16),
+                  
+                  // Items Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text("ITEM", style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black87)),
+                      Text("TOTAL", style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black87)),
+                    ],
+                  ),
+                  const Divider(color: Colors.black38, thickness: 0.5, height: 8),
+                  
+                  // Items List
+                  ..._currentRun.items.map((item) {
+                    final itemTotal = item.price * item.quantity;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              "${item.commodity} (${item.quantity.toStringAsFixed(1)} ${item.unit})",
+                              style: const TextStyle(
+                                fontFamily: 'Courier',
+                                fontSize: 10,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "₱${itemTotal.toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              fontFamily: 'Courier',
+                              fontSize: 10,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  
+                  const Divider(color: Colors.black54, thickness: 1, height: 16),
+                  
+                  // Totals
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("BUDGET LIMIT:", style: TextStyle(fontFamily: 'Courier', fontSize: 11, color: Colors.black87)),
+                      Text("₱${_currentRun.budget.toStringAsFixed(2)}", style: const TextStyle(fontFamily: 'Courier', fontSize: 11, color: Colors.black87)),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("ACTUAL SPENT:", style: TextStyle(fontFamily: 'Courier', fontSize: 11, color: Colors.black87)),
+                      Text("₱${_currentRun.spent.toStringAsFixed(2)}", style: const TextStyle(fontFamily: 'Courier', fontSize: 11, color: Colors.black87)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "TOTAL SAVED:",
+                        style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87),
+                      ),
+                      Text(
+                        "₱${displaySavings.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                          fontFamily: 'Courier',
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const Divider(color: Colors.black54, thickness: 1, height: 20),
+                  
+                  // Barcode
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(24, (index) => Container(
+                      width: (index % 3 == 0) ? 3.0 : (index % 2 == 0) ? 1.5 : 2.0,
+                      height: 36,
+                      color: Colors.black87,
+                      margin: const EdgeInsets.symmetric(horizontal: 0.8),
+                    )),
+                  ),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: Text(
+                      "#TIPI-${_currentRun.id.substring(0, 8).toUpperCase()}",
+                      style: const TextStyle(
+                        fontFamily: 'Courier',
+                        fontSize: 9,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
 
-    await Clipboard.setData(ClipboardData(text: receiptText));
-    
-    if (mounted) {
-      CustomAlert.show(context, message: TranslationService.instance.t('receipt_copied'), isSuccess: true);
-    }
+            return AlertDialog(
+              backgroundColor: ThemeService.instance.surface,
+              contentPadding: const EdgeInsets.all(12),
+              title: Text(
+                generatedImageBytes == null ? "TIPI E-Receipt Preview" : "Generated E-Receipt Image",
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (generatedImageBytes == null)
+                      RepaintBoundary(
+                        key: _receiptKey,
+                        child: receiptCard,
+                      )
+                    else ...[
+                      // Show the generated image!
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Image.memory(generatedImageBytes!),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        "🎉 E-Receipt image saved to app storage!\n\nPath: $savedFilePath\n\nYou can take a screenshot now to share the receipt picture!",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(generatedImageBytes == null ? "CLOSE" : "DONE"),
+                ),
+                if (generatedImageBytes == null)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ThemeService.instance.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () async {
+                      // Trigger image capture
+                      try {
+                        RenderRepaintBoundary boundary = _receiptKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+                        ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+                        ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+                        if (byteData != null) {
+                          final pngBytes = byteData.buffer.asUint8List();
+                          
+                          // Write file
+                          final tempDir = await getTemporaryDirectory();
+                          final file = File('${tempDir.path}/tipi_receipt_${_currentRun.id.substring(0, 8)}.png');
+                          await file.writeAsBytes(pngBytes);
+                          
+                          setDialogState(() {
+                            generatedImageBytes = pngBytes;
+                            savedFilePath = file.path;
+                          });
+                        }
+                      } catch (e) {
+                        debugPrint("Error generating receipt image: $e");
+                      }
+                    },
+                    child: const Text("GENERATE PICTURE"),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _updateRunStatus(String status) async {
