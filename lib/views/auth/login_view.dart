@@ -3,6 +3,7 @@ import '../../services/api_service.dart';
 import '../../services/theme_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/custom_alert.dart';
 import '../home/home_view.dart';
 
 class LoginView extends StatefulWidget {
@@ -21,6 +22,8 @@ class _LoginViewState extends State<LoginView> {
 
   bool _isSignUp = false;
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _termsAccepted = false;
   String? _errorMessage;
 
   @override
@@ -33,6 +36,11 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _submit() async {
+    if (_isSignUp && !_termsAccepted) {
+      CustomAlert.show(context, message: "Please accept the Terms & Conditions to register.", isError: true);
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -59,15 +67,23 @@ class _LoginViewState extends State<LoginView> {
     });
 
     if (success) {
+      CustomAlert.show(
+        context, 
+        message: _isSignUp ? "Account registered successfully!" : "Successfully logged in!", 
+        isSuccess: true
+      );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeView()),
       );
     } else {
+      final errorMsg = _isSignUp 
+          ? "Registration failed. Email might already be taken."
+          : "Invalid email or password credentials.";
+      
       setState(() {
-        _errorMessage = _isSignUp 
-            ? "Registration failed. Email might already be taken."
-            : "Invalid email or password credentials.";
+        _errorMessage = errorMsg;
       });
+      CustomAlert.show(context, message: errorMsg, isError: true);
     }
   }
 
@@ -160,18 +176,58 @@ class _LoginViewState extends State<LoginView> {
                   CustomTextField(
                     label: "Password",
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: _obscurePassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
                     validator: (val) {
                       if (val == null || val.isEmpty) return "Password is required";
                       if (val.length < 6) return "Password must be at least 6 characters";
                       return null;
                     },
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 16),
+
+                  if (_isSignUp) ...[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: _termsAccepted,
+                          activeColor: ThemeService.instance.primary,
+                          onChanged: (val) {
+                            setState(() {
+                              _termsAccepted = val ?? false;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              "I agree to the Terms & Conditions. I understand that the developer is an indie creator and commodity prices are reference guides sourced from WFP (Davao del Norte only).",
+                              style: TextStyle(
+                                fontSize: 11,
+                                height: 1.4,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
 
                   PrimaryButton(
                     text: _isSignUp ? "REGISTER ACCOUNT" : "SIGN IN",
-                    onPressed: _submit,
+                    onPressed: (_isSignUp && !_termsAccepted) ? null : _submit,
                     isLoading: _isLoading,
                   ),
                   const SizedBox(height: 16),

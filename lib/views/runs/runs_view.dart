@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
 import '../../services/theme_service.dart';
+import '../../services/translation_service.dart';
 import '../../models/grocery_run.dart';
 import '../../models/grocery_run_item.dart';
 import '../../models/price_item.dart';
+import '../../widgets/custom_alert.dart';
 
 class RunsView extends StatefulWidget {
   final GroceryRun run;
@@ -70,6 +73,9 @@ class _RunsViewState extends State<RunsView> {
   }
 
   void _showAddCommoditySheet() {
+    bool didFetchCustom = false;
+    List<PriceItem> customList = [];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -80,10 +86,25 @@ class _RunsViewState extends State<RunsView> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (sheetContext, setSheetState) {
+            if (!didFetchCustom) {
+              didFetchCustom = true;
+              ApiService.instance.fetchCustomCommodities().then((fetched) {
+                if (sheetContext.mounted) {
+                  setSheetState(() {
+                    customList = fetched;
+                  });
+                }
+              });
+            }
+
             final isDark = ThemeService.instance.isDarkMode.value;
 
-            // Search filtering logic
-            List<PriceItem> listToShow = CacheService.instance.cachedPrices;
+            // Search filtering logic: Merge local cached WFP items and shared shopper items
+            List<PriceItem> listToShow = [
+              ...CacheService.instance.cachedPrices,
+              ...customList
+            ];
+
             if (_searchQuery.isNotEmpty) {
               listToShow = listToShow.where((item) =>
                 item.commodity.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -94,8 +115,8 @@ class _RunsViewState extends State<RunsView> {
             // Get only the most recent record per commodity to show unique items
             final uniqueMap = <String, PriceItem>{};
             for (var item in listToShow) {
-              if (!uniqueMap.containsKey(item.commodity)) {
-                uniqueMap[item.commodity] = item;
+              if (!uniqueMap.containsKey(item.commodity.toLowerCase().trim())) {
+                uniqueMap[item.commodity.toLowerCase().trim()] = item;
               }
             }
             final uniqueList = uniqueMap.values.toList();
@@ -115,7 +136,7 @@ class _RunsViewState extends State<RunsView> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Select Davao del Norte Commodity",
+                        "Add Commodity to Run",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -142,10 +163,26 @@ class _RunsViewState extends State<RunsView> {
                       });
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  ListTile(
+                    leading: Icon(Icons.add_circle_outline, color: ThemeService.instance.primary),
+                    title: Text(
+                      _searchQuery.isEmpty ? "Add custom item..." : 'Add custom item: "$_searchQuery"',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: ThemeService.instance.primary,
+                      ),
+                    ),
+                    subtitle: const Text("Create a commodity not found in the WFP database"),
+                    onTap: () {
+                      Navigator.of(ctx).pop();
+                      _showAddCustomItemDialog(_searchQuery);
+                    },
+                  ),
+                  const Divider(),
                   ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(ctx).size.height * 0.45,
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.35,
                     ),
                     child: uniqueList.isEmpty
                         ? const Center(
@@ -159,16 +196,37 @@ class _RunsViewState extends State<RunsView> {
                             separatorBuilder: (_, __) => const Divider(),
                             itemBuilder: (itemCtx, index) {
                               final priceItem = uniqueList[index];
+                              final isCustom = priceItem.date.isEmpty;
                               return ListTile(
-                                title: Text(
-                                  priceItem.commodity,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? Colors.white : Colors.black87,
-                                  ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        priceItem.commodity,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: isDark ? Colors.white : Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isCustom)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          "👥 Shopper Shared",
+                                          style: TextStyle(fontSize: 9, color: Colors.green, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 subtitle: Text(
-                                  "WFP Reference: ₱${priceItem.price.toStringAsFixed(2)} / ${priceItem.unit} (${priceItem.category})",
+                                  isCustom
+                                      ? "Shopper Price: ₱${priceItem.price.toStringAsFixed(2)} / ${priceItem.unit} (At ${priceItem.market})"
+                                      : "WFP Reference: ₱${priceItem.price.toStringAsFixed(2)} / ${priceItem.unit} (${priceItem.category})",
                                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                                 ),
                                 trailing: Icon(
@@ -186,6 +244,150 @@ class _RunsViewState extends State<RunsView> {
                   const SizedBox(height: 16),
                 ],
               ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAddCustomItemDialog(String initialName) {
+    String selectedMarket = _markets[0];
+    String selectedCategory = "Custom";
+    final nameController = TextEditingController(text: initialName);
+    final priceController = TextEditingController(text: "0.0");
+    final qtyController = TextEditingController(text: "1.0");
+    final unitController = TextEditingController(text: "kg");
+    
+    final List<String> categories = [
+      "Custom",
+      "Cereals",
+      "Meat, Fish and Poultry",
+      "Vegetables and Fruits",
+      "Milk and Dairy",
+      "Miscellaneous"
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialogState) {
+            final isDark = ThemeService.instance.isDarkMode.value;
+            return AlertDialog(
+              backgroundColor: ThemeService.instance.surface,
+              title: Text(
+                "Add Custom Item",
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextFormField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: "Commodity Name"),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: const InputDecoration(labelText: "Category"),
+                      items: categories.map((c) {
+                        return DropdownMenuItem(value: c, child: Text(c));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            selectedCategory = val;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedMarket,
+                      decoration: const InputDecoration(labelText: "Target Market"),
+                      items: _markets.map((m) {
+                        return DropdownMenuItem(value: m, child: Text(m));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            selectedMarket = val;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            controller: priceController,
+                            decoration: const InputDecoration(labelText: "Price (PHP)"),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 1,
+                          child: TextFormField(
+                            controller: unitController,
+                            decoration: const InputDecoration(labelText: "Unit"),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: qtyController,
+                      decoration: const InputDecoration(labelText: "Quantity Needed"),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text("CANCEL"),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ThemeService.instance.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) return;
+
+                    Navigator.of(ctx).pop();
+                    final customPrice = double.tryParse(priceController.text) ?? 0.0;
+                    final quantity = double.tryParse(qtyController.text) ?? 1.0;
+                    final unit = unitController.text.trim().isEmpty ? "kg" : unitController.text.trim();
+
+                    final added = await ApiService.instance.addRunItem(
+                      _currentRun.id,
+                      commodity: name,
+                      price: customPrice,
+                      quantity: quantity,
+                      unit: unit,
+                      category: selectedCategory,
+                      market: selectedMarket,
+                    );
+
+                    if (added != null) {
+                      _refreshRun();
+                    }
+                  },
+                  child: const Text("ADD TO LIST"),
+                ),
+              ],
             );
           },
         );
@@ -285,6 +487,95 @@ class _RunsViewState extends State<RunsView> {
         );
       },
     );
+  }
+
+  Future<void> _finishRun() async {
+    // 1. Set status to completed (this automatically increments user stats on the backend!)
+    await _updateRunStatus('completed');
+    
+    if (!mounted) return;
+
+    final savings = _currentRun.budget - _currentRun.spent;
+    final displaySavings = savings < 0 ? 0.0 : savings;
+
+    // 2. Show completion dialog and prompt for receipt
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final isDark = ThemeService.instance.isDarkMode.value;
+        return AlertDialog(
+          backgroundColor: ThemeService.instance.surface,
+          title: Text(
+            TranslationService.instance.t('finish_success'),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                "${TranslationService.instance.t('savings_msg')}: ₱${displaySavings.toStringAsFixed(2)}!",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                TranslationService.instance.t('generate_receipt_prompt'),
+                style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                CustomAlert.show(context, message: TranslationService.instance.t('finish_success'), isSuccess: true);
+              },
+              child: Text(TranslationService.instance.t('no')),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ThemeService.instance.primary,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _generateAndCopyEReceipt();
+              },
+              child: Text(TranslationService.instance.t('yes')),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _generateAndCopyEReceipt() async {
+    final savings = _currentRun.budget - _currentRun.spent;
+    final displaySavings = savings < 0 ? 0.0 : savings;
+
+    final receiptText = 
+      "🧾 TIPI GROCERY E-RECEIPT 🧾\n"
+      "---------------------------------\n"
+      "Run: ${_currentRun.name}\n"
+      "Date: ${DateTime.now().toString().split(' ').first}\n\n"
+      "ITEMS BOUGHT:\n" +
+      _currentRun.items.map((item) => "• ${item.commodity} (${item.quantity.toStringAsFixed(1)} ${item.unit}) - ₱${(item.price * item.quantity).toStringAsFixed(2)}").join('\n') +
+      "\n---------------------------------\n"
+      "Total Budget: ₱${_currentRun.budget.toStringAsFixed(2)}\n"
+      "Actual Spent: ₱${_currentRun.spent.toStringAsFixed(2)}\n"
+      "---------------------------------\n"
+      "🎉 TOTAL SAVED: ₱${displaySavings.toStringAsFixed(2)} 🎉\n\n"
+      "Thank you for shopping smart with Tipi! 🛒";
+
+    await Clipboard.setData(ClipboardData(text: receiptText));
+    
+    if (mounted) {
+      CustomAlert.show(context, message: TranslationService.instance.t('receipt_copied'), isSuccess: true);
+    }
   }
 
   Future<void> _updateRunStatus(String status) async {
@@ -530,12 +821,35 @@ class _RunsViewState extends State<RunsView> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: ThemeService.instance.primary,
-        onPressed: _showAddCommoditySheet,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("ADD COMMODITY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
+      floatingActionButton: _currentRun.status == 'completed'
+          ? null
+          : FloatingActionButton.extended(
+              backgroundColor: ThemeService.instance.primary,
+              onPressed: _showAddCommoditySheet,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: Text(TranslationService.instance.t('add_commodity').toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+      bottomNavigationBar: _currentRun.status == 'active'
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E6B39),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: Text(
+                    TranslationService.instance.t('finish_run'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  onPressed: _finishRun,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

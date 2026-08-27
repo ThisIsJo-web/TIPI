@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../services/theme_service.dart';
+import '../../services/translation_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/custom_alert.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -65,9 +67,11 @@ class _ProfileViewState extends State<ProfileView> {
     setState(() {
       _isLoading = false;
       if (success) {
-        _successMessage = "Profile updated successfully!";
+        _successMessage = TranslationService.instance.t('profile_updated');
+        CustomAlert.show(context, message: _successMessage!, isSuccess: true);
       } else {
-        _successMessage = "Failed to update profile. Please try again.";
+        _successMessage = TranslationService.instance.t('profile_failed');
+        CustomAlert.show(context, message: _successMessage!, isError: true);
       }
     });
   }
@@ -82,8 +86,9 @@ class _ProfileViewState extends State<ProfileView> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: isDark ? Colors.white : Colors.black87),
         title: Text(
-          "PROFILE SETTINGS",
+          TranslationService.instance.t('profile_title').toUpperCase(),
           style: TextStyle(
             color: isDark ? Colors.white : Colors.black87,
             fontWeight: FontWeight.bold,
@@ -144,7 +149,7 @@ class _ProfileViewState extends State<ProfileView> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Active since: ${user?.activeSince ?? ''}",
+                              "${TranslationService.instance.t('active')} since: ${user?.activeSince ?? ''}",
                               style: const TextStyle(fontSize: 11, color: Colors.grey),
                             ),
                           ],
@@ -160,11 +165,11 @@ class _ProfileViewState extends State<ProfileView> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: _successMessage!.startsWith("Profile") 
+                    color: _successMessage == TranslationService.instance.t('profile_updated')
                         ? Colors.green.shade50 
                         : Colors.red.shade50,
                     border: Border.all(
-                      color: _successMessage!.startsWith("Profile") 
+                      color: _successMessage == TranslationService.instance.t('profile_updated')
                           ? Colors.green.shade200 
                           : Colors.red.shade200,
                     ),
@@ -173,7 +178,7 @@ class _ProfileViewState extends State<ProfileView> {
                   child: Text(
                     _successMessage!,
                     style: TextStyle(
-                      color: _successMessage!.startsWith("Profile") ? Colors.green : Colors.red,
+                      color: _successMessage == TranslationService.instance.t('profile_updated') ? Colors.green : Colors.red,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
@@ -194,14 +199,14 @@ class _ProfileViewState extends State<ProfileView> {
               const SizedBox(height: 12),
 
               CustomTextField(
-                label: "Display Name",
+                label: TranslationService.instance.t('name_label'),
                 controller: _nameController,
                 validator: (val) => val == null || val.isEmpty ? "Name is required" : null,
               ),
               const SizedBox(height: 16),
 
               CustomTextField(
-                label: "Monthly Budget Limit (PHP)",
+                label: TranslationService.instance.t('budget_goal_label'),
                 controller: _budgetController,
                 keyboardType: TextInputType.number,
                 validator: (val) {
@@ -225,7 +230,7 @@ class _ProfileViewState extends State<ProfileView> {
               // Dropdown preferences
               DropdownButtonFormField<String>(
                 value: _selectedLanguage,
-                decoration: const InputDecoration(labelText: "App Language"),
+                decoration: InputDecoration(labelText: TranslationService.instance.t('settings_language')),
                 items: _languages.map((l) {
                   return DropdownMenuItem(value: l, child: Text(l));
                 }).toList(),
@@ -256,7 +261,7 @@ class _ProfileViewState extends State<ProfileView> {
               const SizedBox(height: 32),
 
               PrimaryButton(
-                text: "SAVE PROFILE CHANGES",
+                text: TranslationService.instance.t('save_changes'),
                 onPressed: _save,
                 isLoading: _isLoading,
               ),

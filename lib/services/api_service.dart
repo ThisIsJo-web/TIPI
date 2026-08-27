@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/user.dart';
 import '../models/grocery_run.dart';
@@ -38,6 +39,11 @@ class ApiService {
         final body = jsonDecode(response.body);
         _token = body['token'];
         _currentUser = User.fromJson(body['user']);
+
+        // Persist token
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('jwt_token', _token!);
+
         return true;
       }
       debugPrint("ApiService: Login failed with code ${response.statusCode}: ${response.body}");
@@ -67,6 +73,11 @@ class ApiService {
         final body = jsonDecode(response.body);
         _token = body['token'];
         _currentUser = User.fromJson(body['user']);
+
+        // Persist token
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('jwt_token', _token!);
+
         return true;
       }
       debugPrint("ApiService: Registration failed with code ${response.statusCode}: ${response.body}");
@@ -77,9 +88,75 @@ class ApiService {
     }
   }
 
-  void logout() {
+  void logout() async {
     _token = null;
     _currentUser = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('jwt_token');
+    } catch (e) {
+      debugPrint("Error clearing persistent token: $e");
+    }
+  }
+
+  Future<bool> tryAutoLogin() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+      if (token == null) return false;
+
+      _token = token;
+      final success = await fetchProfile();
+      if (success) {
+        return true;
+      } else {
+        _token = null;
+        await prefs.remove('jwt_token');
+        return false;
+      }
+    } catch (e) {
+      debugPrint("ApiService: Auto login exception: $e");
+      return false;
+    }
+  }
+
+  Future<bool> fetchProfile() async {
+    if (!isAuthenticated) return false;
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.backendUrl}/api/auth/profile'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        _currentUser = User.fromJson(body);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Fetch profile error: $e");
+      return false;
+    }
+  }
+
+  Future<List<PriceItem>> fetchCustomCommodities() async {
+    if (!isAuthenticated) return [];
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.backendUrl}/api/runs/custom-commodities'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final List body = jsonDecode(response.body) as List;
+        return body.map((item) => PriceItem.fromJson(item as Map<String, dynamic>)).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Fetch custom commodities error: $e");
+      return [];
+    }
   }
 
   Future<bool> updateProfile({

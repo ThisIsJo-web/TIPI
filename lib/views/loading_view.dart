@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../services/cache_service.dart';
 import '../services/theme_service.dart';
+import '../services/translation_service.dart';
 import 'auth/login_view.dart';
+import 'home/home_view.dart';
 
 class LoadingView extends StatefulWidget {
   const LoadingView({super.key});
@@ -11,7 +14,7 @@ class LoadingView extends StatefulWidget {
 }
 
 class _LoadingViewState extends State<LoadingView> {
-  String _statusText = "Syncing local price dataset...";
+  String _statusText = "Loading up everything for you, please take a moment...";
 
   @override
   void initState() {
@@ -20,20 +23,25 @@ class _LoadingViewState extends State<LoadingView> {
   }
 
   Future<void> _initializeApp() async {
-    // 1. Sync WFP grocery prices dataset
-    bool syncSuccess = await CacheService.instance.syncDataset();
+    // 1. Sync WFP grocery prices dataset in background
+    await CacheService.instance.syncDataset();
     if (!mounted) return;
 
-    if (!syncSuccess) {
-      setState(() {
-        _statusText = "Failed to sync price dataset. Continuing offline...";
-      });
-      await Future.delayed(const Duration(seconds: 1));
-    }
+    // 2. Attempt Auto-Login using persisted JWT
+    setState(() {
+      _statusText = "Authenticating secure session...";
+    });
+    
+    bool loggedIn = await ApiService.instance.tryAutoLogin();
+    if (!mounted) return;
 
-    // 2. Redirect to Login Screen
-    // (Since we reset the backend to 0, users must always login/register first)
-    if (mounted) {
+    if (loggedIn) {
+      // Direct redirect to Dashboard if session is active
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const HomeView()),
+      );
+    } else {
+      // Redirect to Login Screen otherwise
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LoginView()),
       );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 import '../../services/theme_service.dart';
+import '../../services/translation_service.dart';
 import '../../models/grocery_run.dart';
 import '../runs/runs_view.dart';
 import '../profile/profile_view.dart';
@@ -28,10 +30,16 @@ class _HomeViewState extends State<HomeView> {
       _isLoading = true;
     });
 
-    final fetched = await ApiService.instance.fetchRuns();
+    // Simultaneously fetch runs and sync price dataset (over-the-air)
+    final results = await Future.wait([
+      ApiService.instance.fetchRuns(),
+      CacheService.instance.syncDataset(),
+    ]);
+
+    final fetchedRuns = results[0] as List<GroceryRun>;
 
     setState(() {
-      _runs = fetched;
+      _runs = fetchedRuns;
       _isLoading = false;
     });
   }
@@ -48,7 +56,7 @@ class _HomeViewState extends State<HomeView> {
         return AlertDialog(
           backgroundColor: ThemeService.instance.surface,
           title: Text(
-            "New Grocery Run",
+            TranslationService.instance.t('new_run'),
             style: TextStyle(
               color: isDark ? Colors.white : Colors.black87,
               fontWeight: FontWeight.bold,
@@ -61,17 +69,17 @@ class _HomeViewState extends State<HomeView> {
               children: [
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: "Run Title (e.g. Weekly Groceries)"),
-                  validator: (val) => val == null || val.isEmpty ? "Title is required" : null,
+                  decoration: InputDecoration(labelText: TranslationService.instance.t('run_title')),
+                  validator: (val) => val == null || val.isEmpty ? TranslationService.instance.t('title_required') : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: budgetController,
-                  decoration: const InputDecoration(labelText: "Limit / Budget (PHP)"),
+                  decoration: InputDecoration(labelText: TranslationService.instance.t('budget_limit')),
                   keyboardType: TextInputType.number,
                   validator: (val) {
-                    if (val == null || val.isEmpty) return "Budget is required";
-                    if (double.tryParse(val) == null) return "Enter a valid number";
+                    if (val == null || val.isEmpty) return TranslationService.instance.t('budget_required');
+                    if (double.tryParse(val) == null) return TranslationService.instance.t('valid_number');
                     return null;
                   },
                 ),
@@ -81,7 +89,7 @@ class _HomeViewState extends State<HomeView> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text("CANCEL"),
+              child: Text(TranslationService.instance.t('cancel')),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -106,7 +114,7 @@ class _HomeViewState extends State<HomeView> {
                   ).then((_) => _loadRuns());
                 }
               },
-              child: const Text("CREATE"),
+              child: Text(TranslationService.instance.t('create')),
             ),
           ],
         );
@@ -127,9 +135,9 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       backgroundColor: ThemeService.instance.background,
       appBar: AppBar(
-        title: const Text(
-          "TIPI DASHBOARD",
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 20),
+        title: Text(
+          TranslationService.instance.t('dashboard_title'),
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 20),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -171,7 +179,7 @@ class _HomeViewState extends State<HomeView> {
             children: [
               // Welcome header
               Text(
-                "Hello, ${user?.name ?? 'Saver'} 👋",
+                "${TranslationService.instance.t('hello')}, ${user?.name != null && user!.name.trim().isNotEmpty ? user.name.trim().split(' ').first : 'Saver'} 👋",
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -198,9 +206,9 @@ class _HomeViewState extends State<HomeView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            "Monthly Budget Limit",
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          Text(
+                            TranslationService.instance.t('monthly_budget'),
+                            style: const TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                           Text(
                             "₱${budgetGoal.toStringAsFixed(2)}",
@@ -229,7 +237,7 @@ class _HomeViewState extends State<HomeView> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "Spent: ₱${totalSpentThisMonth.toStringAsFixed(2)}",
+                            "${TranslationService.instance.t('spent')}: ₱${totalSpentThisMonth.toStringAsFixed(2)}",
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -237,7 +245,7 @@ class _HomeViewState extends State<HomeView> {
                             ),
                           ),
                           Text(
-                            "${(progressPercent * 100).toStringAsFixed(0)}% Used",
+                            "${(progressPercent * 100).toStringAsFixed(0)}% ${TranslationService.instance.t('used')}",
                             style: TextStyle(
                               fontSize: 13,
                               color: progressPercent >= 0.9 ? Colors.red : Colors.grey,
@@ -256,7 +264,7 @@ class _HomeViewState extends State<HomeView> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Recent Shopping Runs",
+                    TranslationService.instance.t('recent_runs'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -266,7 +274,7 @@ class _HomeViewState extends State<HomeView> {
                   TextButton.icon(
                     onPressed: _showCreateRunDialog,
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text("NEW RUN"),
+                    label: Text(TranslationService.instance.t('create_run').toUpperCase()),
                     style: TextButton.styleFrom(
                       foregroundColor: ThemeService.instance.primary,
                       textStyle: const TextStyle(fontWeight: FontWeight.bold),
@@ -279,7 +287,36 @@ class _HomeViewState extends State<HomeView> {
               // List of Runs
               Expanded(
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? ListView.builder(
+                        itemCount: 3,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemBuilder: (context, index) {
+                          return Column(
+                            children: [
+                              Container(
+                                height: 76,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              if (index == 2) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  TranslationService.instance.t('loading_text'),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? Colors.white54 : Colors.black54,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      )
                     : _runs.isEmpty
                         ? Center(
                             child: Column(
@@ -288,7 +325,7 @@ class _HomeViewState extends State<HomeView> {
                                 Icon(Icons.shopping_basket_outlined, size: 48, color: Colors.grey.shade400),
                                 const SizedBox(height: 12),
                                 Text(
-                                  "No shopping runs recorded yet.",
+                                  TranslationService.instance.t('no_runs_yet'),
                                   style: TextStyle(color: Colors.grey.shade500),
                                 ),
                               ],
