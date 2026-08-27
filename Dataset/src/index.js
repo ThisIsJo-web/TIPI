@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import XLSX from 'xlsx';
+import readline from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -74,36 +75,43 @@ function loadDataset() {
 // Initial load
 loadDataset();
 
-// --- Excel / CSV Parsing Helper ---
-function parseSpreadsheet(filePath) {
-  const workbook = XLSX.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
+// --- CSV Helper: Splits a CSV line correctly handling quotes and commas ---
+function splitCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
   
-  // Convert sheet to raw 2D array of cells (header: 1)
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-  if (rows.length === 0) return [];
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
 
-  // Parse headers from the first row
-  const headers = rows[0].map(h => String(h).trim().toLowerCase());
-  console.log('Parsed Sheet Headers:', headers);
+// --- Dynamic Column Mapper Helper ---
+const columnMappings = {
+  date: ['date', 'source_date'],
+  admin1: ['admin1', 'region', 'region '],
+  admin2: ['admin2', 'province'],
+  market: ['market'],
+  market_id: ['market_id', 'market id'],
+  latitude: ['latitude', 'lat'],
+  longitude: ['longitude', 'lon', 'lng'],
+  category: ['category'],
+  commodity: ['commodity', 'item'],
+  unit: ['unit'],
+  price: ['price', 'value']
+};
 
-  // Column aliases mapping
-  const columnMappings = {
-    date: ['date', 'source_date'],
-    admin1: ['admin1', 'region', 'region '],
-    admin2: ['admin2', 'province'],
-    market: ['market'],
-    market_id: ['market_id', 'market id'],
-    latitude: ['latitude', 'lat'],
-    longitude: ['longitude', 'lon', 'lng'],
-    category: ['category'],
-    commodity: ['commodity', 'item'],
-    unit: ['unit'],
-    price: ['price', 'value']
-  };
-
-  // Find index of each mapped column
+function getColumnIndices(headers) {
   const headerIndices = {};
   for (const [colName, aliases] of Object.entries(columnMappings)) {
     let foundIdx = -1;
@@ -113,12 +121,94 @@ function parseSpreadsheet(filePath) {
     }
     headerIndices[colName] = foundIdx;
   }
+  return headerIndices;
+}
 
-  console.log('Detected Column Index Map:', headerIndices);
+// --- Stream-based CSV Parser (Low Memory, early filtering) ---
+async function parseCsvStream(filePath) {
+  const fileStream = fs.createReadStream(filePath);
+  const rl = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity
+  });
+
+  let headers = [];
+  let headerIndices = {};
+  const parsedRecords = [];
+  let lineCount = 0;
+
+  for await (const line of rl) {
+    const row = splitCsvLine(line);
+    if (row.length === 0 || row.join('') === '') continue;
+
+    if (lineCount === 0) {
+      headers = row.map(h => h.trim().toLowerCase());
+      console.log('Parsed CSV Headers:', headers);
+      headerIndices = getColumnIndices(headers);
+      console.log('Detected Column Index Map:', headerIndices);
+    } else {
+      // Early Filtering: Check if admin2 (province) matches 'davao del norte'
+      // This saves HUGE amounts of memory by skipping objects we don't need!
+      const admin2Idx = headerIndices['admin2'];
+      if (admin2Idx !== -1 && row[admin2Idx]) {
+        const province = row[admin2Idx].toLowerCase();
+        if (!province.includes('davao del norte')) {
+          lineCount++;
+          continue;
+        }
+      }
+
+      const record = {};
+      let hasData = false;
+
+      for (const [colName, idx] of Object.entries(headerIndices)) {
+        if (idx !== -1 && row[idx] !== undefined) {
+          let val = row[idx];
+          
+          if (colName === 'price' || colName === 'latitude' || colName === 'longitude') {
+            val = parseFloat(val);
+            if (isNaN(val)) val = null;
+          } else if (colName === 'market_id') {
+            val = parseInt(val);
+            if (isNaN(val)) val = null;
+          } else {
+            if (val.startsWith('"') && val.endsWith('"')) {
+              val = val.substring(1, val.length - 1);
+            }
+            val = val.trim();
+          }
+
+          record[colName] = val;
+          if (val !== null && val !== '') hasData = true;
+        } else {
+          record[colName] = null;
+        }
+      }
+
+      if (hasData) {
+        parsedRecords.push(record);
+      }
+    }
+    lineCount++;
+  }
+
+  return parsedRecords;
+}
+
+// --- Memory-based Excel Parser (Fallback for .xlsx) ---
+function parseExcelFile(filePath) {
+  const workbook = XLSX.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+  if (rows.length === 0) return [];
+
+  const headers = rows[0].map(h => String(h).trim().toLowerCase());
+  const headerIndices = getColumnIndices(headers);
 
   const parsedRecords = [];
 
-  // Parse remaining rows
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (row.length === 0) continue;
@@ -130,7 +220,6 @@ function parseSpreadsheet(filePath) {
       if (idx !== -1 && row[idx] !== undefined) {
         let val = row[idx];
         
-        // Clean values
         if (colName === 'price' || colName === 'latitude' || colName === 'longitude') {
           val = parseFloat(val);
           if (isNaN(val)) val = null;
@@ -184,25 +273,36 @@ app.get('/api/prices', (req, res) => {
 });
 
 // 3. POST /api/upload
-// Receives an Excel/CSV file, parses it, filters for Davao del Norte, and saves to scoped_prices.json
-app.post('/api/upload', upload.single('datasetFile'), (req, res) => {
+// Receives Excel/CSV, parses streamingly if CSV to prevent Heap Limit Out of Memory errors
+app.post('/api/upload', upload.single('datasetFile'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, error: 'No file uploaded.' });
   }
 
   const tempFilePath = req.file.path;
+  const originalName = req.file.originalname.toLowerCase();
   console.log(`File uploaded: ${req.file.originalname} at ${tempFilePath}`);
 
   try {
-    const rawRecords = parseSpreadsheet(tempFilePath);
-    console.log(`Parsed total of ${rawRecords.length} rows.`);
+    let rawRecords = [];
+    const isCsv = originalName.endsWith('.csv');
+
+    if (isCsv) {
+      console.log('Streaming CSV line-by-line...');
+      rawRecords = await parseCsvStream(tempFilePath);
+    } else {
+      console.log('Reading Excel file in-memory...');
+      rawRecords = parseExcelFile(tempFilePath);
+    }
+
+    console.log(`Parsed total of ${rawRecords.length} records matching scope.`);
 
     // Filter strictly for Davao del Norte
     let filteredRecords = rawRecords.filter(r => 
       r.admin2 && String(r.admin2).toLowerCase().includes('davao del norte')
     );
 
-    // Dynamic filtering for Panabo / Tagum if they exist in the uploaded sheet
+    // Dynamic filtering for Panabo / Tagum if they exist in the sheet
     const hasPanaboOrTagum = filteredRecords.some(r => 
       r.market && (
         String(r.market).toLowerCase().includes('panabo') || 
@@ -233,13 +333,12 @@ app.post('/api/upload', upload.single('datasetFile'), (req, res) => {
 
     res.json({
       success: true,
-      message: 'Dataset uploaded, parsed and reloaded.',
+      message: 'Dataset uploaded, parsed and reloaded successfully.',
       version: datasetVersion
     });
 
   } catch (error) {
     console.error('Failed to parse or save dataset:', error);
-    // Ensure temp file cleanup in case of error
     if (fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
     }
