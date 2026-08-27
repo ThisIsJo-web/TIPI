@@ -56,7 +56,7 @@ class TranslationService {
     },
     'recent_runs': {
       'en': 'Recent Shopping Runs',
-      'tl': 'Mga Kamakailang Pagbili'
+      'tl': 'Kamakailang Bili'
     },
     'budget': {
       'en': 'Budget',
@@ -88,7 +88,7 @@ class TranslationService {
     },
     'create_run': {
       'en': 'Create Run',
-      'tl': 'Gumawa ng Listahan'
+      'tl': 'Bagong Run'
     },
     'run_name_label': {
       'en': 'Run Name (e.g. Weekly Groceries)',

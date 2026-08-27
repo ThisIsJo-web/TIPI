@@ -279,8 +279,6 @@ class _HomeViewState extends State<HomeView> {
                         fontWeight: FontWeight.bold,
                         color: isDark ? Colors.white : Colors.black87,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   TextButton.icon(
