@@ -1,0 +1,95 @@
+# Tipi Restructuring Plan
+
+## Core Requirements & Objectives
+
+1. **Branding & UI/UX**
+   - Redesign with a clean, simple, and static layout (no complex animations for now).
+   - Ensure a typical, intuitive mobile app layout (prioritizing mobile/portable use).
+   - Improve branding to feel cohesive and professional.
+
+2. **Scoped Feature Set**
+   - Budget grocery running tool for the Philippines using the World Food Programme (WFP) prices dataset.
+   - Limit the database scope to: **Davao del Norte (Panabo and Tagum City only)**.
+   - Refactor/fix bad logic and simplify flow.
+
+3. **Project & Folder Reorganization**
+   - Reorganize the folder structure to be clean and intuitive (especially for web developers).
+   - Clean up and remove unused files and dead code.
+
+4. **Tipi App Backend Reset (`backend/` folder)**
+   - Reset the backend to 0 (clean slate).
+   - We are migrating away from Supabase's cloud backend to our own custom, lightweight API backend.
+   - Containerize using **Docker** for deployment on **Render** (Free Web Service tier).
+   - Database: Use a free **Neon PostgreSQL** server database.
+   - Handles:
+     - User authentication & session management.
+     - Profile storage, budget goals, and saved stats.
+     - Grocery runs header records and individual shopping items.
+
+5. **Dataset Fetching API (`dataset/` folder)**
+   - Create a separate backend website/layer inside the folder `dataset/` (pure backend, no UI complexity) to fetch the dataset.
+   - Containerize using **Docker** for deployment on **Render** (Free Web Service tier).
+   - Exposes:
+     - `GET /api/version`: Returns the version/date of the current dataset.
+     - `GET /api/prices`: Returns the filtered list of Panabo/Tagum food prices.
+     - `POST /api/update`: Triggers an update/import of the latest dataset.
+
+---
+
+## Planned Folder Structure
+```
+tipi/
+├── backend/             # Main Tipi REST API backend (Dockerized for Render)
+│   ├── src/             # Authentication, Profiles, and Grocery Runs logic
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── dataset/             # Pure backend layer for price data (Dockerized for Render)
+│   ├── src/             # Parsers & sync logic for Davao del Norte WFP dataset
+│   ├── data/            # Scoped CSV/JSON data
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── lib/                 # Flutter mobile client
+│   ├── config/          # App constants, API endpoints, theme data
+│   ├── models/          # Data models (e.g., GroceryItem, Run, User)
+│   ├── services/        # Clean API client services
+│   ├── views/           # UI Screens & Layouts
+│   │   ├── auth/        # Login/Register views
+│   │   ├── home/        # Main dashboard
+│   │   ├── runs/        # Grocery running flow
+│   │   └── profile/     # User profile settings
+│   ├── widgets/         # Shared, reusable UI components
+│   └── main.dart        # Entry point
+└── pubspec.yaml
+```
+
+---
+
+## Execution Steps
+
+- [x] **Step 2.1: Clean Up & Prep**
+  - [x] Identify and delete all unused files from the existing Flutter project (such as old Supabase services).
+  - [x] Set up the proposed directory structure under `lib/`.
+  
+- [x] **Step 2.2: Setup Dataset Fetching API (`dataset/`)**
+  - [x] Create the `dataset/` directory.
+  - [x] Build a simple backend REST API using Docker.
+  - [x] Load and scope the WFP dataset (Davao del Norte: Panabo & Tagum).
+  - [x] Implement `/api/version`, `/api/prices`, and `/api/update` endpoints.
+
+- [x] **Step 2.3: Setup Main App Backend (`backend/`)**
+  - [x] Create the `backend/` directory.
+  - [x] Set up a clean REST API in Docker connected to a free Neon PostgreSQL DB.
+  - [x] Implement authentication endpoints, profiles CRUD, and grocery runs management.
+  - [x] Install sqlite3 fallback dependency for local database runs.
+  
+- [x] **Step 2.4: Integrate Services in Flutter**
+  - [x] Add network client in `lib/services/` to fetch data from both our main `backend` API and the `dataset` price API.
+  - [x] Reconfigure API base URLs in `lib/config/` for Render.
+
+- [x] **Step 2.5: Simple Mobile UI Development**
+  - [x] Build static, clean UI views for Auth, Home, Search, and Runs.
+  - [x] Connect all views to the new services.
+
+- [x] **Step 2.6: Verification**
+  - [x] Verify both Docker container builds and API responses.
+  - [x] Perform manual verification of the mobile layouts on a simulated device.

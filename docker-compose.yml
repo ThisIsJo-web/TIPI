@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=development
+      - JWT_SECRET=tipi_local_secret_key_12345
+    volumes:
+      - ./backend/src:/app/src
+      - tipi-db-volume:/app
+
+  dataset:
+    build:
+      context: ./dataset
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+      - NODE_ENV=development
+    volumes:
+      - ./dataset/src:/app/src
+      - ./dataset/data:/app/data
+
+volumes:
+  tipi-db-volume:

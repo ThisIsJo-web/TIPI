@@ -1,0 +1,541 @@
+import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
+import '../../services/theme_service.dart';
+import '../../models/grocery_run.dart';
+import '../../models/grocery_run_item.dart';
+import '../../models/price_item.dart';
+
+class RunsView extends StatefulWidget {
+  final GroceryRun run;
+
+  const RunsView({super.key, required this.run});
+
+  @override
+  State<RunsView> createState() => _RunsViewState();
+}
+
+class _RunsViewState extends State<RunsView> {
+  late GroceryRun _currentRun;
+  bool _isLoading = false;
+  List<PriceItem> _filteredPrices = [];
+  String _searchQuery = "";
+
+  // The virtual markets for Davao del Norte
+  final List<String> _markets = ["Panabo Public Market", "Tagum Public Market"];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentRun = widget.run;
+    _filteredPrices = CacheService.instance.cachedPrices;
+  }
+
+  Future<void> _refreshRun() async {
+    final runs = await ApiService.instance.fetchRuns();
+    final updated = runs.firstWhere((r) => r.id == _currentRun.id, orElse: () => _currentRun);
+    setState(() {
+      _currentRun = updated;
+    });
+  }
+
+  Future<void> _toggleItemChecked(GroceryRunItem item) async {
+    final updated = await ApiService.instance.updateRunItem(
+      _currentRun.id,
+      item.id,
+      checked: !item.checked,
+    );
+    if (updated != null) {
+      _refreshRun();
+    }
+  }
+
+  Future<void> _deleteItem(String itemId) async {
+    final success = await ApiService.instance.deleteRunItem(_currentRun.id, itemId);
+    if (success) {
+      _refreshRun();
+    }
+  }
+
+  Future<void> _updateItemQuantity(GroceryRunItem item, double change) async {
+    final newQty = (item.quantity + change).clamp(0.1, 99.0);
+    final updated = await ApiService.instance.updateRunItem(
+      _currentRun.id,
+      item.id,
+      quantity: newQty,
+    );
+    if (updated != null) {
+      _refreshRun();
+    }
+  }
+
+  void _showAddCommoditySheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: ThemeService.instance.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            final isDark = ThemeService.instance.isDarkMode.value;
+
+            // Search filtering logic
+            List<PriceItem> listToShow = CacheService.instance.cachedPrices;
+            if (_searchQuery.isNotEmpty) {
+              listToShow = listToShow.where((item) =>
+                item.commodity.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                item.category.toLowerCase().contains(_searchQuery.toLowerCase())
+              ).toList();
+            }
+
+            // Get only the most recent record per commodity to show unique items
+            final uniqueMap = <String, PriceItem>{};
+            for (var item in listToShow) {
+              if (!uniqueMap.containsKey(item.commodity)) {
+                uniqueMap[item.commodity] = item;
+              }
+            }
+            final uniqueList = uniqueMap.values.toList();
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Select Davao del Norte Commodity",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: "Search commodities (e.g. Regular Rice, Pork)...",
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    onChanged: (val) {
+                      setSheetState(() {
+                        _searchQuery = val;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.45,
+                    ),
+                    child: uniqueList.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24.0),
+                              child: Text("No commodities matched search query."),
+                            ),
+                          )
+                        : ListView.separated(
+                            itemCount: uniqueList.length,
+                            separatorBuilder: (_, __) => const Divider(),
+                            itemBuilder: (itemCtx, index) {
+                              final priceItem = uniqueList[index];
+                              return ListTile(
+                                title: Text(
+                                  priceItem.commodity,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  "WFP Reference: ₱${priceItem.price.toStringAsFixed(2)} / ${priceItem.unit} (${priceItem.category})",
+                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                trailing: Icon(
+                                  Icons.add_circle_outline,
+                                  color: ThemeService.instance.primary,
+                                ),
+                                onTap: () {
+                                  Navigator.of(ctx).pop();
+                                  _showConfigureItemDialog(priceItem);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showConfigureItemDialog(PriceItem priceItem) {
+    String selectedMarket = _markets[0];
+    final qtyController = TextEditingController(text: "1.0");
+    final priceController = TextEditingController(text: priceItem.price.toStringAsFixed(2));
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialogState) {
+            final isDark = ThemeService.instance.isDarkMode.value;
+            return AlertDialog(
+              backgroundColor: ThemeService.instance.surface,
+              title: Text(
+                "Add ${priceItem.commodity}",
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedMarket,
+                    decoration: const InputDecoration(labelText: "Choose Target Market"),
+                    items: _markets.map((m) {
+                      return DropdownMenuItem(value: m, child: Text(m));
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {
+                          selectedMarket = val;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: priceController,
+                    decoration: InputDecoration(
+                      labelText: "Custom Price per ${priceItem.unit} (PHP)",
+                      suffixText: "Ref: ₱${priceItem.price.toStringAsFixed(2)}",
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: qtyController,
+                    decoration: const InputDecoration(labelText: "Quantity Needed"),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text("CANCEL"),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ThemeService.instance.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    final customPrice = double.tryParse(priceController.text) ?? priceItem.price;
+                    final quantity = double.tryParse(qtyController.text) ?? 1.0;
+
+                    final added = await ApiService.instance.addRunItem(
+                      _currentRun.id,
+                      commodity: priceItem.commodity,
+                      price: customPrice,
+                      quantity: quantity,
+                      unit: priceItem.unit,
+                      category: priceItem.category,
+                      market: selectedMarket,
+                    );
+
+                    if (added != null) {
+                      _refreshRun();
+                    }
+                  },
+                  child: const Text("ADD TO LIST"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateRunStatus(String status) async {
+    final updated = await ApiService.instance.updateRun(_currentRun.id, status: status);
+    if (updated != null) {
+      setState(() {
+        _currentRun = updated;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = ThemeService.instance.isDarkMode.value;
+    double progress = _currentRun.budget > 0 
+        ? (_currentRun.spent / _currentRun.budget).clamp(0.0, 1.0) 
+        : 0.0;
+    bool isOverBudget = _currentRun.spent > _currentRun.budget;
+
+    return Scaffold(
+      backgroundColor: ThemeService.instance.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          _currentRun.name.toUpperCase(),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          // Run status selector dropdown
+          DropdownButton<String>(
+            value: _currentRun.status,
+            dropdownColor: ThemeService.instance.surface,
+            underline: const SizedBox(),
+            icon: Icon(Icons.arrow_drop_down, color: ThemeService.instance.primary),
+            items: const [
+              DropdownMenuItem(value: 'active', child: Text("Active", style: TextStyle(fontSize: 14))),
+              DropdownMenuItem(value: 'draft', child: Text("Draft", style: TextStyle(fontSize: 14))),
+              DropdownMenuItem(value: 'completed', child: Text("Done", style: TextStyle(fontSize: 14))),
+            ],
+            onChanged: (val) {
+              if (val != null) {
+                _updateRunStatus(val);
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: ThemeService.instance.surface,
+                  title: const Text("Delete Run?"),
+                  content: const Text("Are you sure you want to permanently delete this grocery run?"),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text("CANCEL")),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text("DELETE", style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true && mounted) {
+                await ApiService.instance.deleteRun(_currentRun.id);
+                if (mounted) Navigator.of(context).pop();
+              }
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Budget Bar Header Card
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: ThemeService.instance.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Run Progress", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    Text(
+                      "₱${_currentRun.spent.toStringAsFixed(2)} / ₱${_currentRun.budget.toStringAsFixed(2)}",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: isOverBudget ? Colors.red : ThemeService.instance.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                    color: isOverBudget ? Colors.red : ThemeService.instance.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Items Title
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Text(
+              "Shopping List (${_currentRun.items.length} items)",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+            ),
+          ),
+
+          // Items list
+          Expanded(
+            child: _currentRun.items.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_shopping_cart, size: 40, color: Colors.grey.shade400),
+                        const SizedBox(height: 12),
+                        Text(
+                          "Your grocery run shopping list is empty.",
+                          style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    itemCount: _currentRun.items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (ctx, idx) {
+                      final item = _currentRun.items[idx];
+                      return Dismissible(
+                        key: Key(item.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (_) {
+                          _deleteItem(item.id);
+                        },
+                        child: Card(
+                          color: ThemeService.instance.surface,
+                          margin: EdgeInsets.zero,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                            child: Row(
+                              children: [
+                                Checkbox(
+                                  activeColor: ThemeService.instance.primary,
+                                  value: item.checked,
+                                  onChanged: (_) => _toggleItemChecked(item),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item.commodity,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 15,
+                                          decoration: item.checked ? TextDecoration.lineThrough : null,
+                                          color: isDark
+                                              ? (item.checked ? Colors.white38 : Colors.white)
+                                              : (item.checked ? Colors.black38 : Colors.black87),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        "${item.market}  •  ₱${item.price.toStringAsFixed(2)} / ${item.unit}",
+                                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Quantity selector
+                                Row(
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.remove, size: 18),
+                                      onPressed: () => _updateItemQuantity(item, -0.5),
+                                    ),
+                                    Text(
+                                      item.quantity.toStringAsFixed(1),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.add, size: 18),
+                                      onPressed: () => _updateItemQuantity(item, 0.5),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: ThemeService.instance.primary,
+        onPressed: _showAddCommoditySheet,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text("ADD COMMODITY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+}

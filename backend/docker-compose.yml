@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  tipi-backend:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODE_ENV=development
+      - JWT_SECRET=tipi_local_secret_key_12345
+      # Local development falls back to SQLite internally if DATABASE_URL is not set
+    volumes:
+      - ./src:/app/src
+      - tipi-db-volume:/app
+volumes:
+  tipi-db-volume:
