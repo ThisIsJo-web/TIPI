@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
@@ -770,7 +771,7 @@ class _RunsViewState extends State<RunsView> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        "🎉 E-Receipt image saved to app storage!\n\nPath: $savedFilePath\n\nYou can take a screenshot now to share the receipt picture!",
+                        "🎉 E-Receipt image generated successfully!\n\nYou can now save it directly to your phone's photo gallery, or take a screenshot!",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 12,
@@ -787,6 +788,48 @@ class _RunsViewState extends State<RunsView> {
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: Text(generatedImageBytes == null ? "CLOSE" : "DONE"),
                 ),
+                if (generatedImageBytes != null)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () async {
+                      try {
+                        final result = await ImageGallerySaver.saveImage(
+                          generatedImageBytes!,
+                          name: "tipi_receipt_${_currentRun.id.substring(0, 8)}",
+                        );
+                        final success = result != null && result['isSuccess'] == true;
+                        
+                        if (mounted) {
+                          if (success) {
+                            CustomAlert.show(
+                              context,
+                              message: "Receipt Image saved to Gallery successfully!",
+                              isSuccess: true,
+                            );
+                          } else {
+                            CustomAlert.show(
+                              context,
+                              message: "Failed to save receipt image to Gallery.",
+                              isError: true,
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        debugPrint("Error saving receipt to gallery: $e");
+                        if (mounted) {
+                          CustomAlert.show(
+                            context,
+                            message: "Failed to save receipt image to Gallery: $e",
+                            isError: true,
+                          );
+                        }
+                      }
+                    },
+                    child: const Text("SAVE TO GALLERY"),
+                  ),
                 if (generatedImageBytes == null)
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
