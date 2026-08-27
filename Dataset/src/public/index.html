@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tipi Dataset Parser Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0D5C2C;
+            --primary-hover: #073a1a;
+            --bg: #F9FBF9;
+            --card-bg: #ffffff;
+            --text: #1C241E;
+            --text-secondary: #5F6E62;
+            --border: #E0E6E1;
+            --success: #1E6B39;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            padding: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(13, 92, 44, 0.05);
+            border: 1px solid var(--border);
+            padding: 40px 32px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 0 0 32px 0;
+            line-height: 1.5;
+        }
+
+        .drop-zone {
+            border: 2px dashed #B8C7BC;
+            border-radius: 14px;
+            padding: 32px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #FAFBFB;
+            margin-bottom: 24px;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--primary);
+            background-color: #F1F6F2;
+        }
+
+        .drop-zone-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+
+        .drop-zone-text {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .drop-zone-subtext {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            background-color: #A3B5A8;
+            cursor: not-allowed;
+        }
+
+        /* Results / Status Card */
+        .status-box {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            text-align: left;
+            display: none;
+            line-height: 1.6;
+        }
+
+        .status-box.success {
+            background-color: #EBF7EE;
+            border: 1px solid #C3E6CB;
+            color: var(--success);
+            display: block;
+        }
+
+        .status-box.error {
+            background-color: #FDF3F3;
+            border: 1px solid #F5C6CB;
+            color: #721C24;
+            display: block;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin: 20px auto;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Tipi Parser</h1>
+            <p class="subtitle">Upload a raw WFP food prices CSV or Excel file to filter for Davao del Norte (Panabo/Tagum) prices.</p>
+
+            <form id="upload-form">
+                <div class="drop-zone" id="drop-zone">
+                    <span class="drop-zone-icon">📊</span>
+                    <div class="drop-zone-text">Drag and drop file here</div>
+                    <div class="drop-zone-subtext">Supports .csv or .xlsx spreadsheets</div>
+                    <input type="file" name="datasetFile" id="file-input" class="file-input" accept=".csv, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                </div>
+
+                <button type="submit" class="btn" id="submit-btn" disabled>PARSE & UPDATE DATASET</button>
+            </form>
+
+            <div class="loading-spinner" id="spinner"></div>
+            <div class="status-box" id="status-box"></div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const form = document.getElementById('upload-form');
+        const spinner = document.getElementById('spinner');
+        const statusBox = document.getElementById('status-box');
+
+        // Click to open file chooser
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // Update UI when file is chosen
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                dropZone.querySelector('.drop-zone-text').textContent = file.name;
+                dropZone.querySelector('.drop-zone-subtext').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                submitBtn.removeAttribute('disabled');
+            }
+        });
+
+        // Drag & Drop events
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                const file = files[0];
+                dropZone.querySelector('.drop-zone-text').textContent = file.name;
+                dropZone.querySelector('.drop-zone-subtext').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                submitBtn.removeAttribute('disabled');
+            }
+        });
+
+        // Form Submit AJAX
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (fileInput.files.length === 0) return;
+
+            // UI Loading state
+            submitBtn.setAttribute('disabled', 'true');
+            spinner.style.display = 'block';
+            statusBox.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('datasetFile', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                spinner.style.display = 'none';
+                submitBtn.removeAttribute('disabled');
+
+                if (response.ok && result.success) {
+                    statusBox.className = 'status-box success';
+                    statusBox.innerHTML = `
+                        <strong>Import Successful!</strong><br>
+                        • Total imported records: ${result.version.totalRecords}<br>
+                        • Dataset date: ${result.version.releaseDate}<br>
+                        • Filters applied: Davao del Norte
+                    `;
+                } else {
+                    statusBox.className = 'status-box error';
+                    statusBox.innerHTML = `<strong>Error:</strong> ${result.error || 'Failed to parse file.'}`;
+                }
+            } catch (err) {
+                spinner.style.display = 'none';
+                submitBtn.removeAttribute('disabled');
+                statusBox.className = 'status-box error';
+                statusBox.innerHTML = `<strong>Error:</strong> Failed to connect to server.`;
+            }
+        });
+    </script>
+</body>
+</html>
