@@ -139,7 +139,9 @@ class _HomeViewState extends State<HomeView> {
       appBar: AppBar(
         title: Text(
           TranslationService.instance.t('dashboard_title'),
-          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 20),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5, fontSize: 18),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -208,9 +210,13 @@ class _HomeViewState extends State<HomeView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            TranslationService.instance.t('monthly_budget'),
-                            style: const TextStyle(fontSize: 14, color: Colors.grey),
+                          Expanded(
+                            child: Text(
+                              TranslationService.instance.t('monthly_budget'),
+                              style: const TextStyle(fontSize: 14, color: Colors.grey),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ),
                           Text(
                             "₱${budgetGoal.toStringAsFixed(2)}",

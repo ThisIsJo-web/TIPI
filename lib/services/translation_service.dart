@@ -48,7 +48,7 @@ class TranslationService {
     },
     'monthly_budget': {
       'en': 'Monthly Budget Limit',
-      'tl': 'Buwanang Limitasyon sa Badyet'
+      'tl': 'Limit sa Badyet'
     },
     'used': {
       'en': 'Used',
