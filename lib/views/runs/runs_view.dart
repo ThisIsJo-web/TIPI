@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
@@ -796,26 +796,13 @@ class _RunsViewState extends State<RunsView> {
                     ),
                     onPressed: () async {
                       try {
-                        final result = await ImageGallerySaver.saveImage(
-                          generatedImageBytes!,
-                          name: "tipi_receipt_${_currentRun.id.substring(0, 8)}",
-                        );
-                        final success = result != null && result['isSuccess'] == true;
-                        
+                        await Gal.putImageBytes(generatedImageBytes!);
                         if (mounted) {
-                          if (success) {
-                            CustomAlert.show(
-                              context,
-                              message: "Receipt Image saved to Gallery successfully!",
-                              isSuccess: true,
-                            );
-                          } else {
-                            CustomAlert.show(
-                              context,
-                              message: "Failed to save receipt image to Gallery.",
-                              isError: true,
-                            );
-                          }
+                          CustomAlert.show(
+                            context,
+                            message: "Receipt Image saved to Gallery successfully!",
+                            isSuccess: true,
+                          );
                         }
                       } catch (e) {
                         debugPrint("Error saving receipt to gallery: $e");
