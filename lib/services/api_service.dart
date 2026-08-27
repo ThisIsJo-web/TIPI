@@ -26,8 +26,10 @@ class ApiService {
 
   Future<bool> login(String email, String password) async {
     try {
+      final url = '${ApiConfig.backendUrl}/api/auth/login';
+      debugPrint("ApiService: Posting to $url");
       final response = await http.post(
-        Uri.parse('${ApiConfig.backendUrl}/api/auth/login'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
@@ -38,17 +40,20 @@ class ApiService {
         _currentUser = User.fromJson(body['user']);
         return true;
       }
+      debugPrint("ApiService: Login failed with code ${response.statusCode}: ${response.body}");
       return false;
     } catch (e) {
-      debugPrint("Login error: $e");
+      debugPrint("ApiService: Login error: $e");
       return false;
     }
   }
 
   Future<bool> register(String email, String password, String name, double budgetGoal) async {
     try {
+      final url = '${ApiConfig.backendUrl}/api/auth/register';
+      debugPrint("ApiService: Posting to $url");
       final response = await http.post(
-        Uri.parse('${ApiConfig.backendUrl}/api/auth/register'),
+        Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -64,9 +69,10 @@ class ApiService {
         _currentUser = User.fromJson(body['user']);
         return true;
       }
+      debugPrint("ApiService: Registration failed with code ${response.statusCode}: ${response.body}");
       return false;
     } catch (e) {
-      debugPrint("Registration error: $e");
+      debugPrint("ApiService: Registration error: $e");
       return false;
     }
   }

@@ -21,6 +21,13 @@ class GroceryRun {
     required this.createdAt,
   });
 
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0.0;
+    return 0.0;
+  }
+
   factory GroceryRun.fromJson(Map<String, dynamic> json) {
     var itemsList = json['items'] as List? ?? [];
     List<GroceryRunItem> parsedItems = itemsList
@@ -31,8 +38,8 @@ class GroceryRun {
       id: json['id'] ?? '',
       userId: json['userId'] ?? json['user_id'] ?? '',
       name: json['name'] ?? '',
-      budget: (json['budget'] ?? 0.0).toDouble(),
-      spent: (json['spent'] ?? 0.0).toDouble(),
+      budget: _parseDouble(json['budget']),
+      spent: _parseDouble(json['spent']),
       status: json['status'] ?? 'active',
       items: parsedItems,
       createdAt: json['createdAt'] != null 

@@ -23,15 +23,22 @@ class User {
     this.preferredMarket,
   });
 
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0.0;
+    return 0.0;
+  }
+
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] ?? '',
       email: json['email'] ?? '',
       name: json['name'] ?? '',
-      budgetGoal: (json['budgetGoal'] ?? json['budget_goal'] ?? 0.0).toDouble(),
+      budgetGoal: _parseDouble(json['budgetGoal'] ?? json['budget_goal']),
       activeSince: json['activeSince'] ?? json['active_since'] ?? '',
       runsCompleted: json['runsCompleted'] ?? json['runs_completed'] ?? 0,
-      totalSaved: (json['totalSaved'] ?? json['total_saved'] ?? 0.0).toDouble(),
+      totalSaved: _parseDouble(json['totalSaved'] ?? json['total_saved']),
       language: json['language'] ?? 'English',
       preferredProvince: json['preferredProvince'] ?? json['preferred_province'],
       preferredMarket: json['preferredMarket'] ?? json['preferred_market'],

@@ -21,13 +21,20 @@ class GroceryRunItem {
     required this.checked,
   });
 
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0.0;
+    return 0.0;
+  }
+
   factory GroceryRunItem.fromJson(Map<String, dynamic> json) {
     return GroceryRunItem(
       id: json['id'] ?? '',
       runId: json['runId'] ?? json['run_id'] ?? '',
       commodity: json['commodity'] ?? '',
-      price: (json['price'] ?? 0.0).toDouble(),
-      quantity: (json['quantity'] ?? 1.0).toDouble(),
+      price: _parseDouble(json['price']),
+      quantity: _parseDouble(json['quantity'] ?? 1.0),
       unit: json['unit'] ?? '',
       category: json['category'] ?? '',
       market: json['market'] ?? '',
