@@ -1,5 +1,6 @@
 import GroceryRun from '../models/GroceryRun.js';
 import GroceryRunItem from '../models/GroceryRunItem.js';
+import User from '../models/User.js';
 
 // --- Runs Header CRUD ---
 
@@ -50,11 +51,24 @@ export async function updateRun(req, res) {
       return res.status(404).json({ error: 'Grocery run not found or unauthorized' });
     }
 
+    const oldStatus = run.status;
+
     if (name !== undefined) run.name = name;
     if (budget !== undefined) run.budget = budget;
     if (status !== undefined) run.status = status;
 
     await run.save();
+
+    // Automatically update User statistics if run is finalized to 'completed'
+    if (status === 'completed' && oldStatus !== 'completed') {
+      const user = await User.findByPk(req.userId);
+      if (user) {
+        const savings = Math.max(0, Number(run.budget) - Number(run.spent));
+        user.runsCompleted = (user.runsCompleted || 0) + 1;
+        user.totalSaved = Number(user.totalSaved || 0) + savings;
+        await user.save();
+      }
+    }
     
     // Fetch updated run with items
     const updated = await GroceryRun.findByPk(run.id, {

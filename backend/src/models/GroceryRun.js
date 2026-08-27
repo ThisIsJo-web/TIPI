@@ -38,7 +38,12 @@ const GroceryRun = sequelize.define('GroceryRun', {
   }
 }, {
   tableName: 'grocery_runs',
-  timestamps: true
+  timestamps: true,
+  indexes: [
+    {
+      fields: ['user_id']
+    }
+  ]
 });
 
 // Associations
