@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Node.js / Docker related
+node_modules/
+tipi_local.db
+*.db-journal
+
