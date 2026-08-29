@@ -5,6 +5,10 @@ import '../../services/theme_service.dart';
 import '../../services/translation_service.dart';
 import '../../models/grocery_run.dart';
 import '../runs/runs_view.dart';
+import '../../config/motion_transitions.dart';
+import '../runs/run_builder_view.dart';
+import '../runs/active_run_view.dart';
+import '../../widgets/tipi_run_card.dart';
 import '../profile/profile_view.dart';
 import '../auth/login_view.dart';
 
@@ -44,84 +48,12 @@ class _HomeViewState extends State<HomeView> {
     });
   }
 
-  Future<void> _showCreateRunDialog() async {
-    final nameController = TextEditingController();
-    final budgetController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        final isDark = ThemeService.instance.isDarkMode.value;
-        return AlertDialog(
-          backgroundColor: ThemeService.instance.surface,
-          title: Text(
-            TranslationService.instance.t('new_run'),
-            style: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(labelText: TranslationService.instance.t('run_title')),
-                    validator: (val) => val == null || val.isEmpty ? TranslationService.instance.t('title_required') : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: budgetController,
-                    decoration: InputDecoration(labelText: TranslationService.instance.t('budget_limit')),
-                    keyboardType: TextInputType.number,
-                    validator: (val) {
-                      if (val == null || val.isEmpty) return TranslationService.instance.t('budget_required');
-                      if (double.tryParse(val) == null) return TranslationService.instance.t('valid_number');
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(TranslationService.instance.t('cancel')),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeService.instance.primary,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                Navigator.of(ctx).pop();
-
-                final name = nameController.text.trim();
-                final budget = double.parse(budgetController.text);
-
-                final created = await ApiService.instance.createRun(name, budget);
-                if (created != null && mounted) {
-                  _loadRuns();
-                  // Open the new run directly
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => RunsView(run: created),
-                    ),
-                  ).then((_) => _loadRuns());
-                }
-              },
-              child: Text(TranslationService.instance.t('create')),
-            ),
-          ],
-        );
-      },
-    );
+  void _navigateToCreateRun() {
+    Navigator.of(context).push(
+      TipiPageRouteBuilder(
+        page: const RunBuilderView(),
+      ),
+    ).then((_) => _loadRuns());
   }
 
   @override
@@ -158,7 +90,7 @@ class _HomeViewState extends State<HomeView> {
             icon: const Icon(Icons.person_outline),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const ProfileView()),
+                TipiPageRouteBuilder(page: const ProfileView()),
               ).then((_) => setState(() {}));
             },
           ),
@@ -282,7 +214,7 @@ class _HomeViewState extends State<HomeView> {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: _showCreateRunDialog,
+                    onPressed: _navigateToCreateRun,
                     icon: const Icon(Icons.add, size: 18),
                     label: Text(TranslationService.instance.t('create_run').toUpperCase()),
                     style: TextButton.styleFrom(
@@ -347,71 +279,23 @@ class _HomeViewState extends State<HomeView> {
                             separatorBuilder: (_, __) => const SizedBox(height: 12),
                             itemBuilder: (ctx, idx) {
                               final run = _runs[idx];
-                              return Card(
-                                color: ThemeService.instance.surface,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(
-                                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
-                                  ),
-                                ),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: () {
+                              return TipiRunCard(
+                                run: run,
+                                onTap: () {
+                                  if (run.status == 'draft') {
                                     Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) => RunsView(run: run),
+                                      TipiPageRouteBuilder(
+                                        page: RunBuilderView(run: run),
                                       ),
                                     ).then((_) => _loadRuns());
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                                    child: Row(
-                                      children: [
-                                        // Run status indicator
-                                        Container(
-                                          width: 12,
-                                          height: 12,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: run.status == 'completed'
-                                                ? Colors.grey
-                                                : run.spent > run.budget
-                                                    ? Colors.red
-                                                    : ThemeService.instance.primary,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        // Run Info
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                run.name,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16,
-                                                  color: isDark ? Colors.white : Colors.black87,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                "${run.items.length} items  •  ₱${run.spent.toStringAsFixed(2)} / ₱${run.budget.toStringAsFixed(2)}",
-                                                style: const TextStyle(fontSize: 13, color: Colors.grey),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.chevron_right,
-                                          color: isDark ? Colors.white30 : Colors.black26,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                  } else {
+                                    Navigator.of(context).push(
+                                      TipiPageRouteBuilder(
+                                        page: ActiveRunView(run: run),
+                                      ),
+                                    ).then((_) => _loadRuns());
+                                  }
+                                },
                               );
                             },
                           ),
@@ -419,6 +303,12 @@ class _HomeViewState extends State<HomeView> {
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: ThemeService.instance.primary,
+        onPressed: _navigateToCreateRun,
+        tooltip: 'New Run',
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

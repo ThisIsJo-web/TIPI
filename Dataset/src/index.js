@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 import XLSX from 'xlsx';
 import readline from 'readline';
+import db, { initDatabaseSchema, saveRecordsToNeon, getPricesFromNeon, clearNeonPrices } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -413,28 +414,41 @@ async function syncAndLoadDataset() {
       await processAndSaveDataset(rawFilePath);
     }
 
+    // Load local file memory cache
     if (fs.existsSync(dataPath)) {
       const rawData = fs.readFileSync(dataPath, 'utf8');
       priceDataset = JSON.parse(rawData);
-      
-      let latestDate = '2026-06-15';
-      if (priceDataset.length > 0) {
-        const dates = priceDataset.map(r => r.date).filter(Boolean);
-        if (dates.length > 0) {
-          latestDate = dates.reduce((max, d) => d > max ? d : max, dates[0]);
-        }
-      }
-
-      datasetVersion = {
-        version: 1,
-        releaseDate: latestDate,
-        totalRecords: priceDataset.length
-      };
-      console.log(`Dataset loaded. Records: ${priceDataset.length}, Last Updated: ${latestDate}`);
-    } else {
-      console.warn(`Dataset file not found at ${dataPath}`);
-      priceDataset = [];
     }
+
+    // Sync with Neon Database
+    await initDatabaseSchema();
+    const neonPrices = await getPricesFromNeon();
+    
+    if (neonPrices.length > 0) {
+      console.log(`Loaded ${neonPrices.length} records directly from Neon PostgreSQL database.`);
+      priceDataset = neonPrices;
+    } else if (priceDataset.length > 0) {
+      console.log(`Neon Database table is empty. Auto-seeding ${priceDataset.length} records from local scoped dataset to Neon DB...`);
+      await saveRecordsToNeon(priceDataset);
+      const rechecked = await getPricesFromNeon();
+      if (rechecked.length > 0) priceDataset = rechecked;
+    }
+
+    let latestDate = '2026-06-15';
+    if (priceDataset.length > 0) {
+      const dates = priceDataset.map(r => r.date).filter(Boolean);
+      if (dates.length > 0) {
+        latestDate = dates.reduce((max, d) => d > max ? d : max, dates[0]);
+      }
+    }
+
+    datasetVersion = {
+      version: 1,
+      releaseDate: latestDate,
+      totalRecords: priceDataset.length,
+      database: 'Neon PostgreSQL (Cloud)'
+    };
+    console.log(`Dataset ready. Total Records: ${priceDataset.length}, Version Date: ${latestDate}`);
   } catch (error) {
     console.error('Failed to sync/load dataset:', error);
   }
@@ -471,13 +485,28 @@ if (fs.existsSync(dataDir)) {
 // --- API Endpoints ---
 
 // 1. GET /api/version
-app.get('/api/version', (req, res) => {
+app.get('/api/version', async (req, res) => {
+  try {
+    const dbPrices = await getPricesFromNeon();
+    if (dbPrices.length > 0) {
+      datasetVersion.totalRecords = dbPrices.length;
+    }
+  } catch (e) {}
   res.json(datasetVersion);
 });
 
 // 2. GET /api/prices
-app.get('/api/prices', (req, res) => {
+app.get('/api/prices', async (req, res) => {
   const { category, commodity } = req.query;
+  try {
+    const dbPrices = await getPricesFromNeon(category, commodity);
+    if (dbPrices && dbPrices.length > 0) {
+      return res.json(dbPrices);
+    }
+  } catch (e) {
+    console.error('Error reading from Neon DB, falling back to memory cache:', e);
+  }
+
   let filtered = priceDataset;
 
   if (category) {
@@ -567,20 +596,26 @@ app.post('/api/upload', upload.single('datasetFile'), async (req, res) => {
     console.log(`Saved persistent dataset file to: ${targetPath}`);
 
     // Parse raw dataset file, save scoped_prices.json & generate comparison
-    await processAndSaveDataset(targetPath);
+    const parsedRecords = await processAndSaveDataset(targetPath);
+
+    // Save directly to Neon PostgreSQL Database
+    if (parsedRecords && parsedRecords.length > 0) {
+      await saveRecordsToNeon(parsedRecords);
+    }
 
     // Clean up temporary Multer upload
     if (fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
     }
 
-    // Reload memory cache
+    // Reload memory cache & Neon status
     await syncAndLoadDataset();
 
     res.json({
       success: true,
-      message: `Dataset uploaded, saved to Dataset/data/${targetFileName}, parsed and reloaded successfully.`,
+      message: `Dataset uploaded, saved to Dataset/data/${targetFileName}, and persisted directly to Neon DB successfully.`,
       targetFile: `Dataset/data/${targetFileName}`,
+      recordsCount: parsedRecords ? parsedRecords.length : 0,
       version: datasetVersion
     });
 
@@ -593,21 +628,25 @@ app.post('/api/upload', upload.single('datasetFile'), async (req, res) => {
   }
 });
 
-// 6. POST /api/update
+// 6. POST /api/update (Directly updates items in Neon DB and local storage)
 app.post('/api/update', async (req, res) => {
+  let recordsToSave = [];
   if (Array.isArray(req.body)) {
-    try {
-      fs.writeFileSync(dataPath, JSON.stringify(req.body, null, 2));
-      console.log('New dataset array written to disk.');
-    } catch (error) {
-      return res.status(500).json({ success: false, error: 'Failed to write dataset to disk: ' + error.message });
-    }
+    recordsToSave = req.body;
   } else if (req.body && Array.isArray(req.body.prices)) {
+    recordsToSave = req.body.prices;
+  }
+
+  if (recordsToSave.length > 0) {
     try {
-      fs.writeFileSync(dataPath, JSON.stringify(req.body.prices, null, 2));
-      console.log('New dataset body.prices array written to disk.');
+      // Save local backup file
+      fs.writeFileSync(dataPath, JSON.stringify(recordsToSave, null, 2));
+      
+      // Save directly to Neon PostgreSQL database
+      await saveRecordsToNeon(recordsToSave);
+      console.log(`Updated ${recordsToSave.length} records directly in Neon PostgreSQL.`);
     } catch (error) {
-      return res.status(500).json({ success: false, error: 'Failed to write dataset to disk: ' + error.message });
+      return res.status(500).json({ success: false, error: 'Failed to update dataset in Neon DB: ' + error.message });
     }
   }
 
@@ -615,18 +654,41 @@ app.post('/api/update', async (req, res) => {
   await syncAndLoadDataset();
   res.json({
     success: true,
-    message: 'Dataset updated and reloaded successfully.',
+    message: 'Dataset updated and persisted directly to Neon DB successfully.',
+    recordsCount: recordsToSave.length,
     version: datasetVersion
   });
 });
 
+// 7. POST /api/sync-neon (Explicit action to force push local dataset to Neon DB)
+app.post('/api/sync-neon', async (req, res) => {
+  try {
+    if (fs.existsSync(dataPath)) {
+      const rawData = fs.readFileSync(dataPath, 'utf8');
+      const records = JSON.parse(rawData);
+      if (Array.isArray(records) && records.length > 0) {
+        await saveRecordsToNeon(records);
+        await syncAndLoadDataset();
+        return res.json({
+          success: true,
+          message: `Successfully pushed ${records.length} records to Neon PostgreSQL DB.`,
+          totalRecords: records.length
+        });
+      }
+    }
+    res.status(400).json({ success: false, error: 'No dataset records found to sync.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date() });
+  res.json({ status: 'ok', database: 'Neon PostgreSQL', time: new Date() });
 });
 
 // Initial load on server startup
 syncAndLoadDataset().then(() => {
   app.listen(PORT, () => {
-    console.log(`Dataset API running on port ${PORT}`);
+    console.log(`Dataset API running on port ${PORT} with Neon PostgreSQL integration`);
   });
 });

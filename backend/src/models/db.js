@@ -8,30 +8,21 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const databaseUrl = process.env.DATABASE_URL;
+const defaultNeonUrl = 'postgresql://neondb_owner:npg_z8DHYpd4LmVK@ep-red-mountain-azlgoct7-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require';
+const databaseUrl = process.env.DATABASE_URL || defaultNeonUrl;
 
-let sequelize;
+console.log('Connecting backend API to Neon PostgreSQL database...');
 
-if (databaseUrl) {
-  console.log('Connecting to remote PostgreSQL database...');
-  sequelize = new Sequelize(databaseUrl, {
-    dialect: 'postgres',
-    logging: false,
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
+const sequelize = new Sequelize(databaseUrl, {
+  dialect: 'postgres',
+  logging: false,
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: false
     }
-  });
-} else {
-  console.log('No DATABASE_URL found. Falling back to local SQLite database (for development)...');
-  sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: path.join(__dirname, '../../tipi_local.db'),
-    logging: false
-  });
-}
+  }
+});
 
 export default sequelize;
 export { sequelize };

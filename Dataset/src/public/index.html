@@ -436,11 +436,30 @@
             </div>
         </div>
         <div class="status-pills">
+            <div class="pill">⚡ DB: <span class="pill-value" style="color: #00E599;">Neon PostgreSQL</span></div>
             <div class="pill">📁 File: <span class="pill-value" id="header-file">Dataset/data/dataset.csv</span></div>
             <div class="pill">📊 Records: <span class="pill-value" id="header-records">0</span></div>
             <div class="pill">📅 Date: <span class="pill-value" id="header-date">--</span></div>
+            <button class="btn" style="padding: 6px 14px; font-size: 12px; border-radius: 20px; background: linear-gradient(135deg, #00E599, #0D5C2C); color: white;" onclick="syncToNeon()">⚡ Sync to Neon DB</button>
         </div>
     </header>
+
+    <script>
+        async function syncToNeon() {
+            try {
+                const res = await fetch('/api/sync-neon', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert('⚡ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('Sync Error: ' + data.error);
+                }
+            } catch (e) {
+                alert('Sync Error: ' + e.message);
+            }
+        }
+    </script>
 
     <div class="nav-tabs-wrapper">
         <div class="nav-tabs">

@@ -49,3 +49,7 @@ node_modules/
 tipi_local.db
 *.db-journal
 
+# Environment variables
+.env
+*.env
+
