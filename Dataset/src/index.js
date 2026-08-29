@@ -443,17 +443,29 @@ async function syncAndLoadDataset() {
 // File watcher on dataDir to auto-sync when a CSV is added/replaced directly on disk
 let watchTimeout = null;
 if (fs.existsSync(dataDir)) {
-  fs.watch(dataDir, (eventType, filename) => {
-    if (!filename) return;
-    const ext = path.extname(filename).toLowerCase();
-    if ((ext === '.csv' || ext === '.xlsx' || ext === '.xls') && filename !== 'scoped_prices.json' && filename !== 'previous_prices.json' && filename !== 'comparison_report.json') {
-      if (watchTimeout) clearTimeout(watchTimeout);
-      watchTimeout = setTimeout(() => {
-        console.log(`Detected change in ${filename}. Re-syncing dataset...`);
-        syncAndLoadDataset();
-      }, 500);
-    }
-  });
+  try {
+    const watcher = fs.watch(dataDir, (eventType, filename) => {
+      if (!filename) return;
+      const filenameStr = String(filename);
+      const ext = path.extname(filenameStr).toLowerCase();
+      if ((ext === '.csv' || ext === '.xlsx' || ext === '.xls') && 
+          filenameStr !== 'scoped_prices.json' && 
+          filenameStr !== 'previous_prices.json' && 
+          filenameStr !== 'comparison_report.json') {
+        if (watchTimeout) clearTimeout(watchTimeout);
+        watchTimeout = setTimeout(() => {
+          console.log(`Detected change in ${filenameStr}. Re-syncing dataset...`);
+          syncAndLoadDataset();
+        }, 500);
+      }
+    });
+
+    watcher.on('error', (err) => {
+      console.warn('fs.watch error (ignored for Docker safety):', err ? err.message : err);
+    });
+  } catch (err) {
+    console.warn('fs.watch initialization failed (ignored for Docker safety):', err ? err.message : err);
+  }
 }
 
 // --- API Endpoints ---
