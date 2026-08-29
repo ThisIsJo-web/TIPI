@@ -2,32 +2,85 @@ date,admin1,admin2,market,latitude,longitude,category,commodity,unit,price
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Cereals,Rice (Regular Milled),kg,50.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Cereals,Rice (Well Milled),kg,54.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Cereals,Rice (Special/Premium),kg,60.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Cereals,Rice (NFA/Subsidized),kg,38.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Cereals,Rice (Imported Commercial),kg,52.00
 2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Cereals,Rice (Regular Milled),kg,49.00
 2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Cereals,Rice (Well Milled),kg,53.00
-2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Cereals,Corn (Grits/Grain),kg,35.00
+2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Cereals,Rice (Special/Premium),kg,58.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Cereals,Corn (Grits/Grain White),kg,35.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Cereals,Corn (Grits/Grain Yellow),kg,36.00
+2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Cereals,Corn (Grits/Grain White),kg,34.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Pork (Pigue/Kasim),kg,320.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Pork (Liempo),kg,350.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Pork (Chop),kg,310.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Pork (Ground),kg,290.00
 2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Meat, Fish and Poultry,Pork (Pigue/Kasim),kg,315.00
+2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Meat, Fish and Poultry,Pork (Liempo),kg,345.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Beef (Meat with bone),kg,380.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Beef (Rump/Lean),kg,420.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Beef (Brisket),kg,360.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Chicken (Fully Dressed),kg,180.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Chicken (Breast/Thigh),kg,195.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Chicken (Wings),kg,190.00
 2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Meat, Fish and Poultry,Chicken (Fully Dressed),kg,175.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Chicken Eggs (Small),pc,7.50
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Chicken Eggs (Medium),pc,8.50
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Chicken Eggs (Large),pc,9.50
+2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Meat, Fish and Poultry,Chicken Eggs (Medium),pc,8.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Milkfish (Bangus),kg,180.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Tilapia,kg,140.00
+2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Meat, Fish and Poultry,Tilapia,kg,135.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Round Scad (Galunggong),kg,200.00
-2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Red Onion,kg,120.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Yellowfin Tuna,kg,260.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Squid (Medium),kg,280.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Shrimp (Sugpo/White),kg,340.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Mackerel (Alumahan),kg,220.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Meat, Fish and Poultry,Threadfin Bream (Bisugo),kg,240.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Red Onion (Local),kg,120.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Red Onion (Imported),kg,100.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,White Onion,kg,110.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Garlic (Imported),kg,140.00
+2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Vegetables and Fruits,Garlic (Native),kg,160.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Tomatoes,kg,70.00
-2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Cabbage,kg,80.00
+2026-06-15,Region XI,Davao del Norte,Panabo Public Market,7.3072,125.6841,Vegetables and Fruits,Tomatoes,kg,65.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Cabbage (Scorpio),kg,80.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Carrots,kg,90.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Potatoes,kg,100.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Eggplant,kg,60.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Ampalaya (Bitter Gourd),kg,75.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,String Beans (Sitao),kg,55.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Pechay (Native),kg,50.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Pechay (Baguio),kg,65.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Squash (Kalabasa),kg,40.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Chayote (Sayote),kg,35.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Cucumber,kg,45.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Ginger (Luya),kg,110.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Calamansi,kg,60.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Banana (Lakatan),kg,70.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Banana (Latundan),kg,50.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Banana (Saba),kg,40.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Mango (Carabao),kg,120.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Papaya (Ripe),kg,45.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Vegetables and Fruits,Pineapple (Medium),pc,60.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Milk and Dairy,Powdered Milk (330g),pack,145.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Milk and Dairy,Powdered Milk (700g),pack,290.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Milk and Dairy,Evaporated Milk (370ml),can,45.00
-2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Cooking Oil (Palm),L,85.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Milk and Dairy,Condensed Milk (300ml),can,55.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Milk and Dairy,Fresh Milk (1L),bottle,95.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Milk and Dairy,Cheddar Cheese (165g),block,65.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Cooking Oil (Palm 1L),bottle,85.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Cooking Oil (Coconut 1L),bottle,95.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Refined Sugar,kg,85.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Washed Sugar,kg,78.00
 2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Brown Sugar,kg,75.00
-2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Iodized Salt,kg,25.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Iodized Salt (Fine),kg,25.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Rock Salt,kg,20.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Soy Sauce (1L),bottle,40.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Vinegar (1L),bottle,35.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Fish Sauce / Patis (350ml),bottle,28.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Banana Ketchup (320g),bottle,25.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Instant Noodles (Payless/Lucky Me),pack,12.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Canned Sardines (155g),can,24.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Canned Tuna Flakes (180g),can,42.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Loaf Bread (Tasty),pack,65.00
+2026-06-15,Region XI,Davao del Norte,Tagum Public Market,7.4474,125.8080,Miscellaneous,Coffee (3-in-1 pack),pack,9.00

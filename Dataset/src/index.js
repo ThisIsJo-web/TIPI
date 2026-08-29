@@ -424,7 +424,12 @@ async function syncAndLoadDataset() {
     await initDatabaseSchema();
     const neonPrices = await getPricesFromNeon();
     
-    if (neonPrices.length > 0) {
+    if (neonPrices.length < priceDataset.length && priceDataset.length > 0) {
+      console.log(`Local dataset (${priceDataset.length} records) has more records than Neon DB (${neonPrices.length}). Syncing all Davao del Norte commodities to Neon DB...`);
+      await saveRecordsToNeon(priceDataset);
+      const rechecked = await getPricesFromNeon();
+      if (rechecked.length > 0) priceDataset = rechecked;
+    } else if (neonPrices.length > 0) {
       console.log(`Loaded ${neonPrices.length} records directly from Neon PostgreSQL database.`);
       priceDataset = neonPrices;
     } else if (priceDataset.length > 0) {
@@ -524,13 +529,23 @@ app.get('/api/prices', async (req, res) => {
   res.json(filtered);
 });
 
-// 3. GET /api/preview (Returns first 30 rows of current dataset)
-app.get('/api/preview', (req, res) => {
-  const limit = parseInt(req.query.limit) || 30;
-  const previewData = priceDataset.slice(0, limit);
+// 3. GET /api/preview (Returns all Davao del Norte dataset rows)
+app.get('/api/preview', async (req, res) => {
+  let allData = priceDataset;
+  try {
+    const dbPrices = await getPricesFromNeon();
+    if (dbPrices && dbPrices.length > 0) {
+      allData = dbPrices;
+    }
+  } catch (e) {}
+
+  const limitParam = req.query.limit;
+  const limit = limitParam === 'all' || limitParam === '0' ? allData.length : (parseInt(limitParam) || allData.length);
+  const previewData = allData.slice(0, limit);
   const rawFile = findRawDatasetFile();
+
   res.json({
-    totalRecords: priceDataset.length,
+    totalRecords: allData.length,
     showing: previewData.length,
     releaseDate: datasetVersion.releaseDate,
     fileName: rawFile ? path.basename(rawFile) : 'dataset.csv',
@@ -667,11 +682,12 @@ app.post('/api/sync-neon', async (req, res) => {
       const rawData = fs.readFileSync(dataPath, 'utf8');
       const records = JSON.parse(rawData);
       if (Array.isArray(records) && records.length > 0) {
+        await clearNeonPrices();
         await saveRecordsToNeon(records);
         await syncAndLoadDataset();
         return res.json({
           success: true,
-          message: `Successfully pushed ${records.length} records to Neon PostgreSQL DB.`,
+          message: `Successfully replaced and pushed ${records.length} records to Neon PostgreSQL DB.`,
           totalRecords: records.length
         });
       }
