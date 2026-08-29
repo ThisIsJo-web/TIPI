@@ -31,22 +31,29 @@ class PriceItem {
     required this.price,
   });
 
+  static double _parseDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0.0;
+    return 0.0;
+  }
+
   factory PriceItem.fromJson(Map<String, dynamic> json) {
     return PriceItem(
       date: json['date'] ?? '',
       admin1: json['admin1'] ?? '',
       admin2: json['admin2'] ?? '',
       market: json['market'] ?? '',
-      marketId: (json['market_id'] ?? 0).toInt(),
-      latitude: (json['latitude'] ?? 0.0).toDouble(),
-      longitude: (json['longitude'] ?? 0.0).toDouble(),
+      marketId: (json['market_id'] ?? json['marketId'] ?? 0).toInt(),
+      latitude: _parseDouble(json['latitude']),
+      longitude: _parseDouble(json['longitude']),
       category: json['category'] ?? '',
       commodity: json['commodity'] ?? '',
       unit: json['unit'] ?? '',
       priceflag: json['priceflag'] ?? '',
       pricetype: json['pricetype'] ?? '',
       currency: json['currency'] ?? '',
-      price: (json['price'] ?? 0.0).toDouble(),
+      price: _parseDouble(json['price']),
     );
   }
 
