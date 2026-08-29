@@ -3,93 +3,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tipi Dataset Parser Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>Tipi Dataset Admin & Parser</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #0D5C2C;
             --primary-hover: #073a1a;
-            --bg: #F9FBF9;
+            --primary-light: #EBF7EE;
+            --bg: #F4F7F5;
             --card-bg: #ffffff;
             --text: #1C241E;
-            --text-secondary: #5F6E62;
+            --text-muted: #5F6E62;
             --border: #E0E6E1;
             --success: #1E6B39;
+            --danger: #D32F2F;
+            --warning: #ED6C02;
+            --shadow: 0 10px 30px rgba(13, 92, 44, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        .container {
+        header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            background: linear-gradient(135deg, #0D5C2C, #1E6B39);
+            color: white;
+            font-weight: 800;
+            font-size: 18px;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(13, 92, 44, 0.2);
+        }
+
+        .logo-title h1 {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .logo-title p {
+            margin: 2px 0 0 0;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status-pills {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            background-color: #F0F4F1;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pill-value {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Tab Navigation */
+        .nav-tabs-wrapper {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 16px 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-badge {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* Main Content Container */
+        main {
+            flex: 1;
+            max-width: 1200px;
             width: 100%;
-            max-width: 520px;
-            padding: 24px;
+            margin: 28px auto;
+            padding: 0 24px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .card {
             background-color: var(--card-bg);
             border-radius: 20px;
-            box-shadow: 0 8px 30px rgba(13, 92, 44, 0.05);
+            box-shadow: var(--shadow);
             border: 1px solid var(--border);
-            padding: 40px 32px;
-            text-align: center;
+            padding: 32px;
+            margin-bottom: 24px;
         }
 
-        h1 {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--primary);
-            margin: 0 0 8px 0;
-            letter-spacing: -0.5px;
+        .card-header {
+            margin-bottom: 24px;
         }
 
-        p.subtitle {
-            color: var(--text-secondary);
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            margin: 0 0 6px 0;
+        }
+
+        .card-subtitle {
             font-size: 14px;
-            margin: 0 0 32px 0;
+            color: var(--text-muted);
+            margin: 0;
             line-height: 1.5;
         }
 
+        /* Upload Zone */
         .drop-zone {
             border: 2px dashed #B8C7BC;
-            border-radius: 14px;
-            padding: 32px 20px;
+            border-radius: 16px;
+            padding: 48px 24px;
+            text-align: center;
             cursor: pointer;
             transition: all 0.2s ease;
             background-color: #FAFBFB;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .drop-zone:hover, .drop-zone.dragover {
             border-color: var(--primary);
-            background-color: #F1F6F2;
+            background-color: var(--primary-light);
         }
 
-        .drop-zone-icon {
-            font-size: 40px;
-            margin-bottom: 12px;
+        .drop-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
             display: inline-block;
         }
 
-        .drop-zone-text {
-            font-weight: 600;
-            font-size: 14px;
+        .drop-text {
+            font-weight: 700;
+            font-size: 16px;
             color: var(--text);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
-        .drop-zone-subtext {
+        .drop-subtext {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .dest-badge {
+            display: inline-block;
+            background-color: #E2ECE5;
+            color: var(--primary);
+            font-family: monospace;
+            padding: 4px 10px;
+            border-radius: 6px;
             font-size: 12px;
-            color: var(--text-secondary);
+            margin-top: 12px;
+            font-weight: 600;
         }
 
         .file-input {
@@ -101,12 +251,16 @@
             color: white;
             border: none;
             border-radius: 12px;
-            padding: 16px;
+            padding: 16px 24px;
             font-size: 15px;
             font-weight: 600;
             width: 100%;
             cursor: pointer;
             transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn:hover {
@@ -118,15 +272,14 @@
             cursor: not-allowed;
         }
 
-        /* Results / Status Card */
+        /* Status & Alert Box */
         .status-box {
             margin-top: 24px;
-            padding: 16px;
-            border-radius: 12px;
+            padding: 20px;
+            border-radius: 14px;
             font-size: 14px;
-            text-align: left;
-            display: none;
             line-height: 1.6;
+            display: none;
         }
 
         .status-box.success {
@@ -143,7 +296,119 @@
             display: block;
         }
 
-        .loading-spinner {
+        /* KPI Grid for Comparison */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background-color: #FAFBFB;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .kpi-change {
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .kpi-change.up { color: var(--danger); }
+        .kpi-change.down { color: var(--success); }
+        .kpi-change.neutral { color: var(--text-muted); }
+
+        /* Tables */
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            width: 280px;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #F0F4F1;
+            color: var(--text-muted);
+            font-weight: 700;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #F0F3F1;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: #F8FAF8;
+        }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .badge-success { background-color: #EBF7EE; color: var(--success); }
+        .badge-danger { background-color: #FDF3F3; color: var(--danger); }
+        .badge-neutral { background-color: #F0F4F1; color: var(--text-muted); }
+
+        .spinner {
             display: none;
             margin: 20px auto;
             border: 3px solid #f3f3f3;
@@ -161,28 +426,180 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>Tipi Parser</h1>
-            <p class="subtitle">Upload a raw WFP food prices CSV or Excel file to filter for Davao del Norte (Panabo/Tagum) prices.</p>
 
-            <form id="upload-form">
-                <div class="drop-zone" id="drop-zone">
-                    <span class="drop-zone-icon">📊</span>
-                    <div class="drop-zone-text">Drag and drop file here</div>
-                    <div class="drop-zone-subtext">Supports .csv or .xlsx spreadsheets</div>
-                    <input type="file" name="datasetFile" id="file-input" class="file-input" accept=".csv, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-                </div>
+    <header>
+        <div class="logo-group">
+            <div class="logo-icon">T</div>
+            <div class="logo-title">
+                <h1>Tipi Dataset Admin</h1>
+                <p>WFP Food Prices Parser & Directory Manager</p>
+            </div>
+        </div>
+        <div class="status-pills">
+            <div class="pill">📁 File: <span class="pill-value" id="header-file">Dataset/data/dataset.csv</span></div>
+            <div class="pill">📊 Records: <span class="pill-value" id="header-records">0</span></div>
+            <div class="pill">📅 Date: <span class="pill-value" id="header-date">--</span></div>
+        </div>
+    </header>
 
-                <button type="submit" class="btn" id="submit-btn" disabled>PARSE & UPDATE DATASET</button>
-            </form>
-
-            <div class="loading-spinner" id="spinner"></div>
-            <div class="status-box" id="status-box"></div>
+    <div class="nav-tabs-wrapper">
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('upload')">
+                📤 Upload & Save
+            </button>
+            <button class="tab-btn" onclick="switchTab('preview')">
+                📊 Preview (First 30 Rows)
+                <span class="tab-badge" id="preview-count-badge">30</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('comparison')">
+                🔄 Dataset Comparison
+            </button>
         </div>
     </div>
 
+    <main>
+        <!-- TAB 1: UPLOAD -->
+        <div id="tab-upload" class="tab-content active">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Upload & Persist Dataset</h2>
+                    <p class="card-subtitle">Upload a raw WFP food prices CSV or Excel file. The file will be saved directly to <code>Dataset/data/dataset.csv</code> and parsed automatically for Davao del Norte (Panabo & Tagum).</p>
+                </div>
+
+                <form id="upload-form">
+                    <div class="drop-zone" id="drop-zone">
+                        <span class="drop-icon">📊</span>
+                        <div class="drop-text">Drag & drop raw CSV or Excel dataset here</div>
+                        <div class="drop-subtext">Click to choose file (.csv, .xlsx)</div>
+                        <div class="dest-badge">Target: Dataset/data/dataset.csv</div>
+                        <input type="file" name="datasetFile" id="file-input" class="file-input" accept=".csv, .xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                    </div>
+
+                    <button type="submit" class="btn" id="submit-btn" disabled>
+                        <span>PARSE & SAVE TO DATASET/DATA/DATASET.CSV</span>
+                    </button>
+                </form>
+
+                <div class="spinner" id="spinner"></div>
+                <div class="status-box" id="status-box"></div>
+            </div>
+        </div>
+
+        <!-- TAB 2: PREVIEW -->
+        <div id="tab-preview" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Latest Dataset Preview</h2>
+                    <p class="card-subtitle">Showing the first 30 records from <code>Dataset/data/dataset.csv</code>.</p>
+                </div>
+
+                <div class="table-controls">
+                    <input type="text" class="search-input" id="search-preview" placeholder="Search commodity or market..." oninput="filterPreviewTable()">
+                    <button class="btn" style="width: auto; padding: 10px 18px;" onclick="loadPreview()">🔄 Refresh Preview</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Commodity</th>
+                                <th>Category</th>
+                                <th>Price (₱)</th>
+                                <th>Unit</th>
+                                <th>Market</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="preview-table-body">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading preview dataset...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: COMPARISON -->
+        <div id="tab-comparison" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Dataset Comparison Report</h2>
+                    <p class="card-subtitle">Comparison metrics between the previous dataset and the latest uploaded dataset.</p>
+                </div>
+
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Total Records</div>
+                        <div class="kpi-value" id="comp-new-count">0</div>
+                        <div class="kpi-change neutral" id="comp-diff-label">0 diff</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Price Increases 📈</div>
+                        <div class="kpi-value" id="comp-increases">0</div>
+                        <div class="kpi-change up">Higher prices</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Price Decreases 📉</div>
+                        <div class="kpi-value" id="comp-decreases">0</div>
+                        <div class="kpi-change down">Lower prices</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Unchanged ➖</div>
+                        <div class="kpi-value" id="comp-unchanged">0</div>
+                        <div class="kpi-change neutral">Same prices</div>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Commodity Price Movement Breakdown</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Commodity</th>
+                                <th>Category</th>
+                                <th>Market</th>
+                                <th>Unit</th>
+                                <th>Old Price</th>
+                                <th>New Price</th>
+                                <th>Change</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparison-table-body">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">No dataset updates to compare yet. Upload a new CSV to compare changes.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
     <script>
+        let fullPreviewData = [];
+
+        // Tab Switching
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tabId === 'upload') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-upload').classList.add('active');
+            } else if (tabId === 'preview') {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-preview').classList.add('active');
+                loadPreview();
+            } else if (tabId === 'comparison') {
+                document.querySelectorAll('.tab-btn')[2].classList.add('active');
+                document.getElementById('tab-comparison').classList.add('active');
+                loadComparison();
+            }
+        }
+
+        // Dropzone & File Input Handlers
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const submitBtn = document.getElementById('submit-btn');
@@ -190,52 +607,47 @@
         const spinner = document.getElementById('spinner');
         const statusBox = document.getElementById('status-box');
 
-        // Click to open file chooser
         dropZone.addEventListener('click', () => fileInput.click());
 
-        // Update UI when file is chosen
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
-                dropZone.querySelector('.drop-zone-text').textContent = file.name;
-                dropZone.querySelector('.drop-zone-subtext').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                dropZone.querySelector('.drop-text').textContent = file.name;
+                dropZone.querySelector('.drop-subtext').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
                 submitBtn.removeAttribute('disabled');
             }
         });
 
-        // Drag & Drop events
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
+        ['dragenter', 'dragover'].forEach(name => {
+            dropZone.addEventListener(name, (e) => {
                 e.preventDefault();
                 dropZone.classList.add('dragover');
-            }, false);
+            });
         });
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
+        ['dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, (e) => {
                 e.preventDefault();
                 dropZone.classList.remove('dragover');
-            }, false);
+            });
         });
 
         dropZone.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const files = dt.files;
+            const files = e.dataTransfer.files;
             if (files.length > 0) {
                 fileInput.files = files;
                 const file = files[0];
-                dropZone.querySelector('.drop-zone-text').textContent = file.name;
-                dropZone.querySelector('.drop-zone-subtext').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
+                dropZone.querySelector('.drop-text').textContent = file.name;
+                dropZone.querySelector('.drop-subtext').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
                 submitBtn.removeAttribute('disabled');
             }
         });
 
-        // Form Submit AJAX
+        // Form Submit
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (fileInput.files.length === 0) return;
 
-            // UI Loading state
             submitBtn.setAttribute('disabled', 'true');
             spinner.style.display = 'block';
             statusBox.style.display = 'none';
@@ -250,7 +662,6 @@
                 });
 
                 const result = await response.json();
-                
                 spinner.style.display = 'none';
                 submitBtn.removeAttribute('disabled');
 
@@ -258,10 +669,12 @@
                     statusBox.className = 'status-box success';
                     statusBox.innerHTML = `
                         <strong>Import Successful!</strong><br>
+                        • Saved file to: <code>Dataset/data/dataset.csv</code><br>
                         • Total imported records: ${result.version.totalRecords}<br>
                         • Dataset date: ${result.version.releaseDate}<br>
-                        • Filters applied: Davao del Norte
+                        • Filtered for Davao del Norte (Panabo & Tagum)
                     `;
+                    fetchVersionHeader();
                 } else {
                     statusBox.className = 'status-box error';
                     statusBox.innerHTML = `<strong>Error:</strong> ${result.error || 'Failed to parse file.'}`;
@@ -273,6 +686,116 @@
                 statusBox.innerHTML = `<strong>Error:</strong> Failed to connect to server.`;
             }
         });
+
+        // Fetch Header Version info
+        async function fetchVersionHeader() {
+            try {
+                const res = await fetch('/api/preview?limit=1');
+                if (res.ok) {
+                    const info = await res.json();
+                    document.getElementById('header-records').textContent = info.totalRecords || 0;
+                    document.getElementById('header-date').textContent = info.releaseDate || '--';
+                    document.getElementById('header-file').textContent = info.filePath || 'Dataset/data/dataset.csv';
+                }
+            } catch (e) {}
+        }
+
+        // Load 30-Row Preview
+        async function loadPreview() {
+            const tbody = document.getElementById('preview-table-body');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">Loading preview dataset...</td></tr>';
+            
+            try {
+                const res = await fetch('/api/preview?limit=30');
+                if (res.ok) {
+                    const resData = await res.json();
+                    fullPreviewData = resData.data || [];
+                    document.getElementById('preview-count-badge').textContent = fullPreviewData.length;
+                    renderPreviewTable(fullPreviewData);
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--danger); padding: 20px;">Failed to load dataset preview.</td></tr>';
+                }
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--danger); padding: 20px;">Error connecting to API.</td></tr>';
+            }
+        }
+
+        function renderPreviewTable(items) {
+            const tbody = document.getElementById('preview-table-body');
+            if (items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">No records found in dataset.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = items.map((item, idx) => `
+                <tr>
+                    <td><strong>${idx + 1}</strong></td>
+                    <td><strong>${item.commodity || '--'}</strong></td>
+                    <td>${item.category || 'General'}</td>
+                    <td><strong style="color: var(--primary);">₱${item.price !== null ? item.price : '--'}</strong></td>
+                    <td>${item.unit || 'kg'}</td>
+                    <td>${item.market || '--'}</td>
+                    <td>${item.date || '--'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterPreviewTable() {
+            const query = document.getElementById('search-preview').value.toLowerCase();
+            const filtered = fullPreviewData.filter(item => 
+                (item.commodity && item.commodity.toLowerCase().includes(query)) ||
+                (item.market && item.market.toLowerCase().includes(query)) ||
+                (item.category && item.category.toLowerCase().includes(query))
+            );
+            renderPreviewTable(filtered);
+        }
+
+        // Load Dataset Comparison Report
+        async function loadComparison() {
+            const tbody = document.getElementById('comparison-table-body');
+            try {
+                const res = await fetch('/api/comparison');
+                if (res.ok) {
+                    const comp = await res.json();
+                    document.getElementById('comp-new-count').textContent = comp.newCount || 0;
+                    
+                    const diff = comp.recordDiff || 0;
+                    const diffLabel = document.getElementById('comp-diff-label');
+                    diffLabel.textContent = `${diff >= 0 ? '+' : ''}${diff} vs previous`;
+                    diffLabel.className = `kpi-change ${diff > 0 ? 'down' : (diff < 0 ? 'up' : 'neutral')}`;
+
+                    document.getElementById('comp-increases').textContent = comp.increasedCount || 0;
+                    document.getElementById('comp-decreases').textContent = comp.decreasedCount || 0;
+                    document.getElementById('comp-unchanged').textContent = comp.unchangedCount || 0;
+
+                    const changes = comp.priceChanges || [];
+                    if (changes.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">No price changes detected between previous and current dataset.</td></tr>';
+                    } else {
+                        tbody.innerHTML = changes.map(c => `
+                            <tr>
+                                <td><strong>${c.commodity}</strong></td>
+                                <td>${c.category}</td>
+                                <td>${c.market}</td>
+                                <td>${c.unit}</td>
+                                <td>₱${c.oldPrice}</td>
+                                <td><strong>₱${c.newPrice}</strong></td>
+                                <td>
+                                    <span class="badge ${c.status === 'increased' ? 'badge-danger' : 'badge-success'}">
+                                        ${c.diff}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--danger); padding: 20px;">Failed to load comparison data.</td></tr>';
+            }
+        }
+
+        // Initial Load
+        fetchVersionHeader();
     </script>
 </body>
 </html>
