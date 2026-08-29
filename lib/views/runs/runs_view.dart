@@ -25,8 +25,6 @@ class RunsView extends StatefulWidget {
 
 class _RunsViewState extends State<RunsView> {
   late GroceryRun _currentRun;
-  bool _isLoading = false;
-  List<PriceItem> _filteredPrices = [];
   String _searchQuery = "";
   final GlobalKey _receiptKey = GlobalKey();
 
@@ -37,7 +35,6 @@ class _RunsViewState extends State<RunsView> {
   void initState() {
     super.initState();
     _currentRun = widget.run;
-    _filteredPrices = CacheService.instance.cachedPrices;
   }
 
   Future<void> _refreshRun() async {
@@ -94,10 +91,13 @@ class _RunsViewState extends State<RunsView> {
           builder: (sheetContext, setSheetState) {
             if (!didFetchCustom) {
               didFetchCustom = true;
-              ApiService.instance.fetchCustomCommodities().then((fetched) {
+              Future.wait([
+                ApiService.instance.fetchCustomCommodities(),
+                CacheService.instance.syncDataset(),
+              ]).then((results) {
                 if (sheetContext.mounted) {
                   setSheetState(() {
-                    customList = fetched;
+                    customList = results[0] as List<PriceItem>;
                   });
                 }
               });
@@ -114,7 +114,8 @@ class _RunsViewState extends State<RunsView> {
             if (_searchQuery.isNotEmpty) {
               listToShow = listToShow.where((item) =>
                 item.commodity.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                item.category.toLowerCase().contains(_searchQuery.toLowerCase())
+                item.category.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                item.market.toLowerCase().contains(_searchQuery.toLowerCase())
               ).toList();
             }
 

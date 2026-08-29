@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../models/grocery_run.dart';
 import '../../models/grocery_run_item.dart';
@@ -316,10 +315,13 @@ class _RunBuilderViewState extends State<RunBuilderView> {
           builder: (sheetContext, setSheetState) {
             if (!didFetchCustom) {
               didFetchCustom = true;
-              ApiService.instance.fetchCustomCommodities().then((fetched) {
+              Future.wait([
+                ApiService.instance.fetchCustomCommodities(),
+                CacheService.instance.syncDataset(),
+              ]).then((results) {
                 if (sheetContext.mounted) {
                   setSheetState(() {
-                    customList = fetched;
+                    customList = results[0] as List<PriceItem>;
                   });
                 }
               });
@@ -331,32 +333,16 @@ class _RunBuilderViewState extends State<RunBuilderView> {
               ...customList
             ];
 
-            // Scope filter: priority matches for selected store
-            if (_selectedStore != "Other Store / Supermarket") {
-              final storeKeyword = _selectedStore.toLowerCase().contains("tagum")
-                  ? "tagum"
-                  : (_selectedStore.toLowerCase().contains("panabo") ? "panabo" : "");
-
-              final storeFiltered = listToShow.where((item) {
-                final marketLower = item.market.toLowerCase().trim();
-                if (marketLower.isEmpty) return true;
-                if (storeKeyword.isNotEmpty && marketLower.contains(storeKeyword)) return true;
-                return marketLower == _selectedStore.toLowerCase().trim();
-              }).toList();
-
-              if (storeFiltered.isNotEmpty) {
-                listToShow = storeFiltered;
-              }
-            }
-
+            // Filter by search query if user typed something
             if (_searchQuery.isNotEmpty) {
               listToShow = listToShow.where((item) =>
                 item.commodity.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                item.category.toLowerCase().contains(_searchQuery.toLowerCase())
+                item.category.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                item.market.toLowerCase().contains(_searchQuery.toLowerCase())
               ).toList();
             }
 
-            // Uniqueness parsing
+            // Uniqueness parsing by commodity name
             final uniqueMap = <String, PriceItem>{};
             for (var item in listToShow) {
               final key = item.commodity.toLowerCase().trim();
@@ -444,7 +430,6 @@ class _RunBuilderViewState extends State<RunBuilderView> {
                             separatorBuilder: (_, __) => const Divider(),
                             itemBuilder: (itemCtx, index) {
                               final priceItem = uniqueList[index];
-                              final isCustom = priceItem.date.isEmpty;
                               return ListTile(
                                 title: Text(
                                   priceItem.commodity,

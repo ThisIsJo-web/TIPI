@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/cache_service.dart';
 import '../services/theme_service.dart';
-import '../services/translation_service.dart';
 import 'auth/login_view.dart';
 import 'home/home_view.dart';
 

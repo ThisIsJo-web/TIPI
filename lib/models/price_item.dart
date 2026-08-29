@@ -15,19 +15,19 @@ class PriceItem {
   final double price;
 
   PriceItem({
-    required this.date,
-    required this.admin1,
-    required this.admin2,
-    required this.market,
-    required this.marketId,
-    required this.latitude,
-    required this.longitude,
-    required this.category,
+    this.date = '',
+    this.admin1 = 'Region XI',
+    this.admin2 = 'Davao del Norte',
+    this.market = '',
+    this.marketId = 0,
+    this.latitude = 0.0,
+    this.longitude = 0.0,
+    this.category = '',
     required this.commodity,
-    required this.unit,
-    required this.priceflag,
-    required this.pricetype,
-    required this.currency,
+    this.unit = 'kg',
+    this.priceflag = '',
+    this.pricetype = '',
+    this.currency = 'PHP',
     required this.price,
   });
 
